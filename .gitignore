@@ -1,0 +1,22 @@
+bin
+gen
+*.apk
+*.keystore
+.hg/
+local.properties
+*.DS_Store
+*.BridgeSort
+out/
+tmp/
+
+build/
+.gradle/
+.idea/
+
+*.iml
+
+# The path where Android Studio stores captures from the device
+captures/
+
+# Crashlytics auto-generated file
+com_crashlytics_export_strings.xml
