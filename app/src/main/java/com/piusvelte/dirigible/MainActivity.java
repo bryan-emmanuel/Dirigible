@@ -146,7 +146,7 @@ public class MainActivity
             setAccount(accountName);
         }
 
-        mAdapter = new Adapter(this, this, this);
+        mAdapter = new Adapter(this);
 
         if (savedInstanceState != null) {
             mAuthorizationIntent = savedInstanceState.getParcelable(STATE_AUTHORIZATION_INTENT);
@@ -412,6 +412,9 @@ public class MainActivity
                 startActivityForResult(mCredential.newChooseAccountIntent(), REQUEST_ACCOUNT_CHOOSER);
             } else if (mAuthorizationIntent != null) {
                 startActivityForResult(mAuthorizationIntent, REQUEST_AUTHORIZATION);
+            } else {
+                mLibraryLoaderCallbacks.restart(getSupportLoaderManager(), LOADER_LIBRARY);
+                mSwipeContainer.setRefreshing(true);
             }
         }
     }
@@ -443,8 +446,6 @@ public class MainActivity
 
     @Override
     public void playVideo(@NonNull MediaInfo mediaInfo) {
-        Log.d(TAG, "play: " + mediaInfo.getContentId());
-
         mPendingPlayVideo = null;
         mCastManager.startVideoCastControllerActivity(this, mediaInfo, 0, true);
     }

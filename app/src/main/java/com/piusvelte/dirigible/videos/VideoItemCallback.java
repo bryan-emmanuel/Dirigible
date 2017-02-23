@@ -2,12 +2,12 @@ package com.piusvelte.dirigible.videos;
 
 import android.support.annotation.NonNull;
 
-import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
+import com.piusvelte.dirigible.util.CredentialProvider;
 
 /**
  * @author bemmanuel
  * @since 3/4/16
  */
-public interface VideoItemCallback {
+public interface VideoItemCallback extends CredentialProvider {
     void loadVideo(@NonNull Video video);
 }

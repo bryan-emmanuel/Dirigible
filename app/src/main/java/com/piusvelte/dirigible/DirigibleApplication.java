@@ -10,13 +10,13 @@ import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
  */
 public class DirigibleApplication extends Application {
 
-    private static final String CAST_APP_ID = "009D6588";
+    private static final String STYLED_RECEIVER_ID = "D17D2263";
 
     @Override
     public void onCreate() {
         super.onCreate();
 
-        CastConfiguration configuration = new CastConfiguration.Builder(CAST_APP_ID)
+        CastConfiguration configuration = new CastConfiguration.Builder(STYLED_RECEIVER_ID)
                 .enableLockScreen()
                 .enableAutoReconnect()
                 .enableNotification()

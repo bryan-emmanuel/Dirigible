@@ -21,7 +21,7 @@ public class RecyclerViewUtils {
      * @param layoutManager The LayoutManager
      * @return
      */
-    static int getFirstVisiblePosition(RecyclerView.LayoutManager layoutManager) {
+    private static int getFirstVisiblePosition(RecyclerView.LayoutManager layoutManager) {
         if (layoutManager instanceof StaggeredGridLayoutManager) {
             StaggeredGridLayoutManager staggeredGridLayoutManager = (StaggeredGridLayoutManager) layoutManager;
             int[] firstVisibleItems = new int[staggeredGridLayoutManager.getSpanCount()];

@@ -1,6 +1,5 @@
 package com.piusvelte.dirigible.videos;
 
-import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -13,8 +12,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.piusvelte.dirigible.R;
-import com.piusvelte.dirigible.playservices.GoogleAccountCredentialInterceptor;
-import com.piusvelte.dirigible.util.CredentialProvider;
 import com.piusvelte.dirigible.util.PicassoUtils;
 
 import java.util.ArrayList;
@@ -29,16 +26,11 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
     private static final String STATE_VIDEOS = TAG + ":state:videos";
 
     @NonNull
-    private CredentialProvider mCredentialProvider;
-    @NonNull
     private VideoItemCallback mCallback;
-    private LayoutInflater mInflater;
     private ArrayList<Video> mVideos = new ArrayList<>();
 
-    public Adapter(@NonNull Context context, @NonNull CredentialProvider credentialProvider, @NonNull VideoItemCallback callback) {
-        mCredentialProvider = credentialProvider;
+    public Adapter(@NonNull VideoItemCallback callback) {
         mCallback = callback;
-        mInflater = LayoutInflater.from(context);
     }
 
     public void addVideos(@NonNull List<Video> files) {
@@ -65,8 +57,8 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
 
     @Override
     public Adapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View itemView = mInflater.inflate(R.layout.video_list_item, parent, false);
-        return new Adapter.ViewHolder(itemView, mCredentialProvider, mCallback);
+        View itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.video_list_item, parent, false);
+        return new Adapter.ViewHolder(itemView, mCallback);
     }
 
     @Override
@@ -79,10 +71,13 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
         return mVideos.size();
     }
 
+    @Override
+    public void onViewRecycled(ViewHolder holder) {
+        holder.recycle();
+    }
+
     static class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
-        @NonNull
-        private CredentialProvider mCredentialProvider;
         @NonNull
         private VideoItemCallback mCallback;
         @NonNull
@@ -92,9 +87,8 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
         @Nullable
         private Video mVideo;
 
-        ViewHolder(@NonNull View itemView, @NonNull CredentialProvider credentialProvider, @NonNull VideoItemCallback callback) {
+        ViewHolder(@NonNull View itemView, @NonNull VideoItemCallback callback) {
             super(itemView);
-            mCredentialProvider = credentialProvider;
             mCallback = callback;
             mIcon = (ImageView) itemView.findViewById(android.R.id.icon);
             mText = (TextView) itemView.findViewById(android.R.id.text1);
@@ -105,9 +99,7 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
             mVideo = video;
 
             if (!TextUtils.isEmpty(mVideo.icon)) {
-                GoogleAccountCredentialInterceptor interceptor = GoogleAccountCredentialInterceptor
-                        .getInterceptor(mCredentialProvider.getCredential());
-                PicassoUtils.getGoogleAuthPicasso(mIcon.getContext(), interceptor)
+                PicassoUtils.getGoogleAuthPicasso(mIcon.getContext(), mCallback.getCredentialProvider())
                         .load(video.icon)
                         .fit()
                         .centerCrop()
@@ -118,6 +110,11 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
             }
 
             mText.setText(video.name);
+        }
+
+        void recycle() {
+            PicassoUtils.getGoogleAuthPicasso(mIcon.getContext(), mCallback.getCredentialProvider())
+                    .cancelRequest(mIcon);
         }
 
         @Override

@@ -17,9 +17,6 @@ import com.piusvelte.dirigible.BuildConfig;
 import com.piusvelte.dirigible.util.BaseAsyncTaskLoader;
 import com.piusvelte.dirigible.util.CredentialProvider;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.IOException;
 
 /**
@@ -104,35 +101,36 @@ public class MediaInfoLoader extends BaseAsyncTaskLoader<MediaInfo> {
 
     @Override
     public MediaInfo loadInBackground() {
-        Uri imageUrl = Uri.parse(mVideo.icon);
-        WebImage image = new WebImage(imageUrl);
 
         MediaMetadata metadata = new MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE);
         metadata.putString(MediaMetadata.KEY_TITLE, mVideo.name);
         metadata.putString(MediaMetadata.KEY_SUBTITLE, mVideo.name);
-        metadata.putString(MediaMetadata.KEY_STUDIO, mVideo.name);
+
+        // access token
+        String accessToken = null;
+
+        try {
+            accessToken = mGoogleAccountCredential.getToken();
+        } catch (IOException | GoogleAuthException e) {
+            if (BuildConfig.DEBUG) Log.e(TAG, "Error getting access token", e);
+        }
+
+        Uri imageUrl = Uri.parse(mVideo.icon + "&access_token=" + accessToken);
+        WebImage image = new WebImage(imageUrl);
+
         // notification
         metadata.addImage(image);
         // lockscreen
         metadata.addImage(image);
 
-        // access token
-        String accessToken;
-        JSONObject customData = new JSONObject();
-
-        try {
-            accessToken = mGoogleAccountCredential.getToken();
-            customData.put("accessToken", accessToken);
-        } catch (IOException | GoogleAuthException e) {
-            if (BuildConfig.DEBUG) Log.e(TAG, "Error getting access token", e);
-        } catch (JSONException e) {
-            if (BuildConfig.DEBUG) Log.e(TAG, "error putting access token: " + accessToken, e);
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "video: " + mVideo.url + "&access_token=" + accessToken +
+                    "\nicon:" + imageUrl);
         }
 
-        return new MediaInfo.Builder(mVideo.url)
+        return new MediaInfo.Builder(mVideo.url + "&access_token=" + accessToken)
                 .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
                 .setContentType(Video.MIME_TYPE_MP4)
-                .setCustomData(customData)
                 .setMetadata(metadata)
                 .build();
     }

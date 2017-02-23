@@ -18,7 +18,6 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
-import com.google.api.services.drive.model.Permission;
 import com.piusvelte.dirigible.BuildConfig;
 import com.piusvelte.dirigible.util.BaseAsyncTaskLoader;
 import com.piusvelte.dirigible.util.CredentialProvider;
@@ -35,11 +34,6 @@ import java.util.List;
 public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
 
     private static final String TAG = LibraryLoader.class.getSimpleName();
-
-    /**
-     * whether to use authentated access for casting, rather than anonymous access
-     */
-    private static final boolean USE_AUTHENTICATED_ACCESS = true;
 
     public interface Viewer {
         void viewLibrary(@NonNull LibraryLoader.Result result);
@@ -144,7 +138,7 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
                                     + "' or mimeType='" + Video.MIME_TYPE_JPEG + "')")
                             .setOrderBy("name")
                             .setSpaces("drive")
-                            .setFields("nextPageToken, files(id, name, mimeType, permissions, webContentLink)")
+                            .setFields("nextPageToken, files(id, name, mimeType)")
                             .setPageToken(mNextPageToken)
                             .execute();
 
@@ -176,28 +170,14 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
             if (Video.MIME_TYPE_MP4.equals(file.getMimeType())) {
                 Video video = new Video(file.getId(), file.getName().split("\\.")[0]);
 
-                checkPermissions(file, drive, !USE_AUTHENTICATED_ACCESS);
-
-                if (USE_AUTHENTICATED_ACCESS) {
-                    try {
-                        HttpRequest request = drive.getRequestFactory().buildGetRequest(drive.files()
-                                .get(file.getId())
-                                .set("alt", "media")
-                                .buildHttpRequestUrl());
-                        video.url = request.getUrl().build();
-
-                        if (video.url.contains("/download")) {
-                            // we want the file contents, not a download
-                            video.url.replace("/download", "");
-                        }
-
-                        Log.d("BJE", "video url= " + video.url);
-                    } catch (IOException e) {
-                        if (BuildConfig.DEBUG) Log.e(TAG, "error getting url", e);
-                    }
-                } else {
-                    video.url = file.getWebContentLink() + "&acknowledgeAbuse=true";
-                    Log.d("BJE", "video url= " + video.url);
+                try {
+                    HttpRequest request = drive.getRequestFactory().buildGetRequest(drive.files()
+                            .get(file.getId())
+                            .set("alt", "media")
+                            .buildHttpRequestUrl());
+                    video.url = request.getUrl().build();
+                } catch (IOException e) {
+                    if (BuildConfig.DEBUG) Log.e(TAG, "error getting url", e);
                 }
 
                 videos.add(video);
@@ -241,42 +221,6 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
         }
 
         return sDrive;
-    }
-
-    private void checkPermissions(@NonNull File file, @NonNull Drive drive, boolean addAnyone) {
-        for (Permission permission : file.getPermissions()) {
-            if ("anyone".equals(permission.getType())) {
-                if (addAnyone) return;
-                removePermission(file.getId(), permission.getId(), drive);
-            }
-        }
-
-        if (addAnyone) addAnyonePermission(file.getId(), drive);
-    }
-
-    private void addAnyonePermission(String fileId, @NonNull Drive drive) {
-        Permission permission = new Permission();
-        permission.setType("anyone");
-        permission.setRole("reader");
-        permission.setAllowFileDiscovery(false);// link only
-
-        try {
-            drive.permissions().create(fileId, permission).execute();
-        } catch (IOException e) {
-            if (BuildConfig.DEBUG) {
-                Log.e(TAG, "error setting permission", e);
-            }
-        }
-    }
-
-    private void removePermission(String fileId, String permissionId, @NonNull Drive drive) {
-        try {
-            drive.permissions().delete(fileId, permissionId).execute();
-        } catch (IOException e) {
-            if (BuildConfig.DEBUG) {
-                Log.e(TAG, "error setting permission", e);
-            }
-        }
     }
 
     public static class Result {
