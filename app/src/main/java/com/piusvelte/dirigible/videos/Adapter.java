@@ -99,7 +99,7 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
             mVideo = video;
 
             if (!TextUtils.isEmpty(mVideo.icon)) {
-                PicassoUtils.getGoogleAuthPicasso(mIcon.getContext(), mCallback.getCredentialProvider())
+                PicassoUtils.getGoogleAuthPicasso(mIcon.getContext(), mCallback.getCredential())
                         .load(video.icon)
                         .fit()
                         .centerCrop()
@@ -113,7 +113,7 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
         }
 
         void recycle() {
-            PicassoUtils.getGoogleAuthPicasso(mIcon.getContext(), mCallback.getCredentialProvider())
+            PicassoUtils.getGoogleAuthPicasso(mIcon.getContext(), mCallback.getCredential())
                     .cancelRequest(mIcon);
         }
 
