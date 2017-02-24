@@ -1,4 +1,4 @@
-package com.piusvelte.dirigible.videos;
+package com.piusvelte.dirigible.video;
 
 import android.content.Context;
 import android.net.Uri;
@@ -27,8 +27,8 @@ public class MediaInfoLoader extends BaseAsyncTaskLoader<MediaInfo> {
 
     private static final String TAG = MediaInfoLoader.class.getSimpleName();
 
-    public interface Player {
-        void playVideo(@NonNull MediaInfo mediaInfo);
+    public interface Player extends CredentialProvider {
+        void onPlayVideo(@NonNull MediaInfo mediaInfo);
     }
 
     public static class Callbacks implements LoaderManager.LoaderCallbacks<MediaInfo> {
@@ -78,7 +78,7 @@ public class MediaInfoLoader extends BaseAsyncTaskLoader<MediaInfo> {
         @Override
         public void onLoadFinished(Loader<MediaInfo> loader, MediaInfo data) {
             if (loader.getId() == loaderId) {
-                mPlayer.playVideo(data);
+                mPlayer.onPlayVideo(data);
             }
         }
 

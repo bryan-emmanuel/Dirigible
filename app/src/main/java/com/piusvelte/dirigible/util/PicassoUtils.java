@@ -9,7 +9,7 @@ import android.util.Log;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.jakewharton.picasso.OkHttp3Downloader;
 import com.piusvelte.dirigible.BuildConfig;
-import com.piusvelte.dirigible.playservices.GoogleAccountCredentialInterceptor;
+import com.piusvelte.dirigible.account.GoogleAccountCredentialInterceptor;
 import com.squareup.picasso.Picasso;
 
 import okhttp3.OkHttpClient;

@@ -8,7 +8,7 @@
 
     <string name="add_account">Add Account</string>
     <string name="authorize_access">Authorize Access</string>
-    <string name="no_videos">No Videos</string>
+    <string name="refresh">Refresh</string>
 
     <string name="media_route_menu_title">Play on&#8230;</string>
 </resources>

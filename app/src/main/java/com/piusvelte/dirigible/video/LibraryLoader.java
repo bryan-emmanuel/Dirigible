@@ -1,4 +1,4 @@
-package com.piusvelte.dirigible.videos;
+package com.piusvelte.dirigible.video;
 
 import android.content.Context;
 import android.content.Intent;
@@ -36,7 +36,7 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
     private static final String TAG = LibraryLoader.class.getSimpleName();
 
     public interface Viewer {
-        void viewLibrary(@NonNull LibraryLoader.Result result);
+        void onLibraryLoaded(@NonNull LibraryLoader.Result result);
     }
 
     public static class Callbacks implements LoaderManager.LoaderCallbacks<LibraryLoader.Result> {
@@ -87,7 +87,7 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
         @Override
         public void onLoadFinished(Loader<LibraryLoader.Result> loader, LibraryLoader.Result data) {
             if (loader.getId() == loaderId) {
-                mViewer.viewLibrary(data);
+                mViewer.onLibraryLoaded(data);
             }
         }
 

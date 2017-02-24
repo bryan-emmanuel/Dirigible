@@ -1,4 +1,4 @@
-package com.piusvelte.dirigible.videos;
+package com.piusvelte.dirigible.video;
 
 import android.os.Parcel;
 import android.os.Parcelable;

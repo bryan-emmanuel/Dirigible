@@ -1,4 +1,4 @@
-package com.piusvelte.dirigible.playservices;
+package com.piusvelte.dirigible.account;
 
 import android.support.annotation.NonNull;
 import android.util.Log;

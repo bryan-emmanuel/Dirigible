@@ -1,4 +1,4 @@
-package com.piusvelte.dirigible.videos;
+package com.piusvelte.dirigible.video;
 
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -49,6 +49,7 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
         List<Video> videos = inState.getParcelableArrayList(STATE_VIDEOS);
         if (videos == null) return;
         mVideos.addAll(videos);
+        notifyDataSetChanged();
     }
 
     public void saveState(@NonNull Bundle outState) {

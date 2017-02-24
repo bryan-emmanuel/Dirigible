@@ -1,4 +1,4 @@
-package com.piusvelte.dirigible.videos;
+package com.piusvelte.dirigible.video;
 
 import android.support.annotation.NonNull;
 
