@@ -166,7 +166,8 @@ public class LibraryBrowser
         super.onResume();
 
         if (mAdapter.isEmpty()) {
-            onRefresh();
+            mSwipeContainer.setRefreshing(true);
+            mLibraryLoaderCallbacks.load(getLoaderManager(), mQuery, mNextPageToken);
         }
     }
 
@@ -198,9 +199,10 @@ public class LibraryBrowser
         switch (requestCode) {
             case REQUEST_AUTHORIZATION:
                 if (resultCode == Activity.RESULT_OK) {
+                    getLoaderManager().destroyLoader(LOADER_LIBRARY);
                     // this will load in onResume
                 } else {
-                    // TODO
+                    // TODO show the error
                 }
                 break;
 
@@ -218,7 +220,7 @@ public class LibraryBrowser
         SearchView searchView = (SearchView) MenuItemCompat.getActionView(searchItem);
         searchView.setIconifiedByDefault(true);
         searchView.setOnQueryTextListener(this);
-        searchView.setQueryHint("Search");
+        searchView.setQueryHint(getString(R.string.search_title));
 
         MenuItemCompat.setOnActionExpandListener(searchItem, this);
     }
@@ -252,7 +254,6 @@ public class LibraryBrowser
 
     @Override
     public void onPlayVideo(@NonNull MediaInfo mediaInfo) {
-        // TODO collapse the search?
         mPendingPlayVideo = null;
         mPlayer.onPlayVideo(mediaInfo);
     }
