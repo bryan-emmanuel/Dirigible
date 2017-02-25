@@ -8,10 +8,12 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.support.v4.app.Fragment;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -41,12 +43,15 @@ public class LibraryBrowser
         RecyclerViewUtils.OnScrollAutoPagingListener.OnAutoPageListener,
         LibraryLoader.Viewer,
         MediaInfoLoader.Player,
-        CredentialProvider {
+        CredentialProvider,
+        SearchView.OnQueryTextListener,
+        MenuItemCompat.OnActionExpandListener {
 
     private static final String TAG = LibraryBrowser.class.getSimpleName();
 
     private static final String STATE_AUTHORIZATION_INTENT = TAG + ":state:authorizationIntent";
     private static final String STATE_NEXT_PAGE_TOKEN = TAG + ":state:nextPageToken";
+    private static final String STATE_QUERY = TAG + ":state:query";
     private static final String STATE_PENDING_PLAY_VIDEO = TAG + ":state:pendingPlayVideo";
 
     private static final int LOADER_LIBRARY = 0;
@@ -62,6 +67,8 @@ public class LibraryBrowser
     private Adapter mAdapter;
     @Nullable
     private String mNextPageToken;
+    @Nullable
+    private String mQuery;
     private LibraryLoader.Callbacks mLibraryLoaderCallbacks;
     private MediaInfoLoader.Callbacks mMediaInfoLoaderCallbacks;
 
@@ -94,6 +101,9 @@ public class LibraryBrowser
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
+
+        mLibraryLoaderCallbacks = new LibraryLoader.Callbacks(getContext().getApplicationContext(), this, this, LOADER_LIBRARY);
+        mMediaInfoLoaderCallbacks = new MediaInfoLoader.Callbacks(getContext().getApplicationContext(), this, this, LOADER_MEDIA_INFO);
     }
 
     @Nullable
@@ -123,11 +133,6 @@ public class LibraryBrowser
         RecyclerViewUtils.addAutoPaging(mRecyclerView, this);
 
         mSwipeContainer.setOnRefreshListener(this);
-
-        mLibraryLoaderCallbacks = new LibraryLoader.Callbacks(getContext(), this, this);
-        mMediaInfoLoaderCallbacks = new MediaInfoLoader.Callbacks(getContext(), this, this);
-
-        mLibraryLoaderCallbacks.init(getLoaderManager(), LOADER_LIBRARY);
     }
 
     @Override
@@ -137,17 +142,21 @@ public class LibraryBrowser
         if (savedInstanceState != null) {
             mAuthorizationIntent = savedInstanceState.getParcelable(STATE_AUTHORIZATION_INTENT);
             mNextPageToken = savedInstanceState.getString(STATE_NEXT_PAGE_TOKEN);
+            mQuery = savedInstanceState.getString(STATE_QUERY);
             mAdapter.restoreState(savedInstanceState);
 
             if (!mAdapter.isEmpty()) {
+                mSwipeContainer.setRefreshing(false);
                 mEmpty.setVisibility(View.GONE);
                 mRecyclerView.setVisibility(View.VISIBLE);
+
+                getActivity().invalidateOptionsMenu();
             }
 
             mPendingPlayVideo = savedInstanceState.getParcelable(STATE_PENDING_PLAY_VIDEO);
 
             if (mPendingPlayVideo != null) {
-                mMediaInfoLoaderCallbacks.init(getLoaderManager(), LOADER_MEDIA_INFO, mPendingPlayVideo);
+                mMediaInfoLoaderCallbacks.init(getLoaderManager(), mPendingPlayVideo);
             }
         }
     }
@@ -178,6 +187,7 @@ public class LibraryBrowser
 
         outState.putParcelable(STATE_AUTHORIZATION_INTENT, mAuthorizationIntent);
         outState.putString(STATE_NEXT_PAGE_TOKEN, mNextPageToken);
+        outState.putString(STATE_QUERY, mQuery);
         outState.putParcelable(STATE_PENDING_PLAY_VIDEO, mPendingPlayVideo);
 
         mAdapter.saveState(outState);
@@ -188,8 +198,7 @@ public class LibraryBrowser
         switch (requestCode) {
             case REQUEST_AUTHORIZATION:
                 if (resultCode == Activity.RESULT_OK) {
-                    mLibraryLoaderCallbacks.restart(getLoaderManager(), LOADER_LIBRARY);
-                    mSwipeContainer.setRefreshing(true);
+                    // this will load in onResume
                 } else {
                     // TODO
                 }
@@ -204,6 +213,14 @@ public class LibraryBrowser
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.library_browser, menu);
+
+        MenuItem searchItem = menu.findItem(R.id.action_search);
+        SearchView searchView = (SearchView) MenuItemCompat.getActionView(searchItem);
+        searchView.setIconifiedByDefault(true);
+        searchView.setOnQueryTextListener(this);
+        searchView.setQueryHint("Search");
+
+        MenuItemCompat.setOnActionExpandListener(searchItem, this);
     }
 
     @Override
@@ -215,7 +232,6 @@ public class LibraryBrowser
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_search:
-                // TODO ActionMode!
                 return true;
         }
 
@@ -236,6 +252,7 @@ public class LibraryBrowser
 
     @Override
     public void onPlayVideo(@NonNull MediaInfo mediaInfo) {
+        // TODO collapse the search?
         mPendingPlayVideo = null;
         mPlayer.onPlayVideo(mediaInfo);
     }
@@ -243,7 +260,7 @@ public class LibraryBrowser
     @Override
     public void loadVideo(@NonNull Video video) {
         mPendingPlayVideo = video;
-        mMediaInfoLoaderCallbacks.restart(getLoaderManager(), LOADER_MEDIA_INFO, mPendingPlayVideo);
+        mMediaInfoLoaderCallbacks.restart(getLoaderManager(), mPendingPlayVideo);
     }
 
     @Override
@@ -255,7 +272,7 @@ public class LibraryBrowser
             mAdapter.notifyItemRangeRemoved(0, originalSize);
         }
 
-        mLibraryLoaderCallbacks.restart(getLoaderManager(), LOADER_LIBRARY);
+        mLibraryLoaderCallbacks.reload(getLoaderManager(), mQuery, mNextPageToken);
         mSwipeContainer.setRefreshing(true);
     }
 
@@ -264,7 +281,7 @@ public class LibraryBrowser
         if (mLoading.getVisibility() == View.VISIBLE) return;// already loading, wait
         if (!mAdapter.isEmpty() && TextUtils.isEmpty(mNextPageToken)) return;// no more pages
         mLoading.setVisibility(View.VISIBLE);
-        mLibraryLoaderCallbacks.restart(getLoaderManager(), LOADER_LIBRARY, mNextPageToken);
+        mLibraryLoaderCallbacks.reload(getLoaderManager(), mQuery, mNextPageToken);
     }
 
     @Override
@@ -283,11 +300,44 @@ public class LibraryBrowser
             mEmpty.setVisibility(View.GONE);
             mRecyclerView.setVisibility(View.VISIBLE);
         }
+
+        if (TextUtils.isEmpty(mQuery)) {
+            getActivity().invalidateOptionsMenu();
+        }
     }
 
     @NonNull
     @Override
     public GoogleAccountCredential getCredential() {
         return mPlayer.getCredential();
+    }
+
+    @Override
+    public boolean onQueryTextSubmit(String query) {
+        mQuery = query;
+        onRefresh();
+        return true;
+    }
+
+    @Override
+    public boolean onQueryTextChange(String query) {
+        if (query.length() < 2) return true;
+        if (query.substring(query.length() - 2).contains(" ")) return true;
+
+        mQuery = query;
+        onRefresh();
+        return true;
+    }
+
+    @Override
+    public boolean onMenuItemActionExpand(MenuItem item) {
+        return true;
+    }
+
+    @Override
+    public boolean onMenuItemActionCollapse(MenuItem item) {
+        mQuery = null;
+        onRefresh();
+        return true;
     }
 }

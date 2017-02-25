@@ -42,31 +42,30 @@ public class MediaInfoLoader extends BaseAsyncTaskLoader<MediaInfo> {
         private CredentialProvider mCredentialProvider;
         @NonNull
         private Player mPlayer;
-        private int loaderId;
+        private final int mLoaderId;
 
-        public Callbacks(@NonNull Context context, @NonNull CredentialProvider credentialProvider, @NonNull Player player) {
+        public Callbacks(@NonNull Context context, @NonNull CredentialProvider credentialProvider, @NonNull Player player, int loaderId) {
             mContext = context;
             mCredentialProvider = credentialProvider;
             mPlayer = player;
+            mLoaderId = loaderId;
         }
 
-        public void init(@NonNull LoaderManager loaderManager, int id, @NonNull Video video) {
-            loaderId = id;
+        public void init(@NonNull LoaderManager loaderManager, @NonNull Video video) {
             Bundle arguments = new Bundle(1);
             arguments.putParcelable(ARG_VIDEO, video);
-            loaderManager.initLoader(id, arguments, this);
+            loaderManager.initLoader(mLoaderId, arguments, this);
         }
 
-        public void restart(@NonNull LoaderManager loaderManager, int id, @NonNull Video video) {
-            loaderId = id;
+        public void restart(@NonNull LoaderManager loaderManager, @NonNull Video video) {
             Bundle arguments = new Bundle(1);
             arguments.putParcelable(ARG_VIDEO, video);
-            loaderManager.restartLoader(id, arguments, this);
+            loaderManager.restartLoader(mLoaderId, arguments, this);
         }
 
         @Override
         public Loader<MediaInfo> onCreateLoader(int id, Bundle args) {
-            if (id == loaderId) {
+            if (id == mLoaderId) {
                 Video video = args != null ? (Video) args.getParcelable(ARG_VIDEO) : null;
                 if (video == null) return null;
                 return new MediaInfoLoader(mContext, video, mCredentialProvider.getCredential());
@@ -77,7 +76,7 @@ public class MediaInfoLoader extends BaseAsyncTaskLoader<MediaInfo> {
 
         @Override
         public void onLoadFinished(Loader<MediaInfo> loader, MediaInfo data) {
-            if (loader.getId() == loaderId) {
+            if (loader.getId() == mLoaderId) {
                 mPlayer.onPlayVideo(data);
             }
         }

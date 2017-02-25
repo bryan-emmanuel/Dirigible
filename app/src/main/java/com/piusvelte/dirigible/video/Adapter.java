@@ -102,12 +102,13 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
             if (!TextUtils.isEmpty(mVideo.icon)) {
                 PicassoUtils.getGoogleAuthPicasso(mIcon.getContext(), mCallback.getCredential())
                         .load(video.icon)
+                        .error(R.drawable.ic_movie_black_24dp)
                         .fit()
                         .centerCrop()
                         .error(R.mipmap.ic_launcher)
                         .into(mIcon);
             } else {
-                mIcon.setImageResource(R.mipmap.ic_launcher);
+                mIcon.setImageResource(R.drawable.ic_movie_black_24dp);
             }
 
             mText.setText(video.name);

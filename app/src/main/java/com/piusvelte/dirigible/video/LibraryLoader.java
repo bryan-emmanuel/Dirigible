@@ -43,6 +43,7 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
 
         private static final String TAG = Callbacks.class.getSimpleName();
         private static final String ARG_NEXT_PAGE_TOKEN = TAG + ":args:nextPageToken";
+        private static final String ARG_QUERY = TAG + ":args:query";
 
         @NonNull
         private Context mContext;
@@ -50,35 +51,37 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
         private CredentialProvider mCredentialProvider;
         @NonNull
         private Viewer mViewer;
-        private int loaderId;
+        private final int mLoaderId;
 
-        public Callbacks(@NonNull Context context, @NonNull CredentialProvider credentialProvider, @NonNull Viewer viewer) {
+        public Callbacks(@NonNull Context context, @NonNull CredentialProvider credentialProvider, @NonNull Viewer viewer, int loaderId) {
             mContext = context;
             mCredentialProvider = credentialProvider;
             mViewer = viewer;
+            mLoaderId = loaderId;
         }
 
-        public void init(@NonNull LoaderManager loaderManager, int id) {
-            loaderId = id;
-            loaderManager.initLoader(id, null, this);
-        }
-
-        public void restart(@NonNull LoaderManager loaderManager, int id) {
-            restart(loaderManager, id, null);
-        }
-
-        public void restart(@NonNull LoaderManager loaderManager, int id, @Nullable String nextPageToken) {
-            loaderId = id;
-            Bundle arguments = new Bundle(1);
+        @NonNull
+        private Bundle getArguments(@Nullable String query, @Nullable String nextPageToken) {
+            Bundle arguments = new Bundle(2);
             arguments.putString(ARG_NEXT_PAGE_TOKEN, nextPageToken);
-            loaderManager.restartLoader(id, arguments, this);
+            arguments.putString(ARG_QUERY, query);
+            return arguments;
+        }
+
+        public void load(@NonNull LoaderManager loaderManager, @Nullable String query, @Nullable String nextPageToken) {
+            loaderManager.initLoader(mLoaderId, getArguments(query, nextPageToken), this);
+        }
+
+        public void reload(@NonNull LoaderManager loaderManager, @Nullable String query, @Nullable String nextPageToken) {
+            loaderManager.restartLoader(mLoaderId, getArguments(query, nextPageToken), this);
         }
 
         @Override
         public Loader<LibraryLoader.Result> onCreateLoader(int id, Bundle args) {
-            if (id == loaderId) {
-                String nextPageToken = args != null ? args.getString(ARG_NEXT_PAGE_TOKEN) : null;
-                return new LibraryLoader(mContext, nextPageToken, mCredentialProvider.getCredential());
+            if (id == mLoaderId) {
+                String query = args.getString(ARG_QUERY);
+                String nextPageToken = args.getString(ARG_NEXT_PAGE_TOKEN);
+                return new LibraryLoader(mContext, mCredentialProvider.getCredential(), query, nextPageToken);
             }
 
             return null;
@@ -86,7 +89,7 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
 
         @Override
         public void onLoadFinished(Loader<LibraryLoader.Result> loader, LibraryLoader.Result data) {
-            if (loader.getId() == loaderId) {
+            if (loader.getId() == mLoaderId) {
                 mViewer.onLibraryLoaded(data);
             }
         }
@@ -103,12 +106,16 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
     @NonNull
     private GoogleAccountCredential mGoogleAccountCredential;
 
-    private String mNextPageToken = null;
+    @Nullable
+    private final String mQuery;
+    @Nullable
+    private final String mNextPageToken;
 
-    public LibraryLoader(@NonNull Context context, @Nullable String nextPageToken, @NonNull GoogleAccountCredential googleAccountCredential) {
+    public LibraryLoader(@NonNull Context context, @NonNull GoogleAccountCredential googleAccountCredential, @Nullable String query, @Nullable String nextPageToken) {
         super(context);
-        mNextPageToken = nextPageToken;
         mGoogleAccountCredential = googleAccountCredential;
+        mQuery = query;
+        mNextPageToken = nextPageToken;
     }
 
     @Override
@@ -133,9 +140,22 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
 
             for (File folder : folders) {
                 if ("Videos".equals(folder.getName())) {
+                    StringBuilder query = new StringBuilder("'")
+                            .append(folder.getId())
+                            .append("' in parents and (mimeType='")
+                            .append(Video.MIME_TYPE_MP4)
+                            .append("' or mimeType='")
+                            .append(Video.MIME_TYPE_JPEG)
+                            .append("')");
+
+                    if (!TextUtils.isEmpty(mQuery)) {
+                        query.append(" and name contains '")
+                                .append(mQuery)
+                                .append("'");
+                    }
+
                     FileList videosList = drive.files().list()
-                            .setQ("'" + folder.getId() + "' in parents and (mimeType='" + Video.MIME_TYPE_MP4
-                                    + "' or mimeType='" + Video.MIME_TYPE_JPEG + "')")
+                            .setQ(query.toString())
                             .setOrderBy("name")
                             .setSpaces("drive")
                             .setFields("nextPageToken, files(id, name, mimeType)")

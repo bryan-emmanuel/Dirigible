@@ -11,4 +11,9 @@
     <string name="refresh">Refresh</string>
 
     <string name="media_route_menu_title">Play on&#8230;</string>
+
+    <string name="menu_include_subfolders">Include subfolders</string>
+
+    <string name="search_title">Search</string>
+    <string name="action_close">Close</string>
 </resources>
