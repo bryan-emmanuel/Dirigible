@@ -37,4 +37,7 @@ public class SharedPreferencesUtils {
                 .apply();
     }
 
+    public static void clearAccount(@NonNull Context context) {
+        edit(context).remove(KEY_ACCOUNT).apply();
+    }
 }

@@ -35,6 +35,8 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
 
     private static final String TAG = LibraryLoader.class.getSimpleName();
 
+    private static final String ROOT = "root";
+
     public interface Viewer {
         void onLibraryLoaded(@NonNull LibraryLoader.Result result);
     }
@@ -44,6 +46,8 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
         private static final String TAG = Callbacks.class.getSimpleName();
         private static final String ARG_NEXT_PAGE_TOKEN = TAG + ":args:nextPageToken";
         private static final String ARG_QUERY = TAG + ":args:query";
+        private static final String ARG_REQUIRE_COVER = TAG + ":args:requireCover";
+        private static final String ARG_PARENT = TAG + ":args:parent";
 
         @NonNull
         private Context mContext;
@@ -61,19 +65,32 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
         }
 
         @NonNull
-        private Bundle getArguments(@Nullable String query, @Nullable String nextPageToken) {
-            Bundle arguments = new Bundle(2);
+        private Bundle getArguments(@Nullable String query,
+                                    @Nullable String nextPageToken,
+                                    boolean requireCover,
+                                    @Nullable String parent) {
+            Bundle arguments = new Bundle(4);
             arguments.putString(ARG_NEXT_PAGE_TOKEN, nextPageToken);
             arguments.putString(ARG_QUERY, query);
+            arguments.putBoolean(ARG_REQUIRE_COVER, requireCover);
+            arguments.putString(ARG_PARENT, parent);
             return arguments;
         }
 
-        public void load(@NonNull LoaderManager loaderManager, @Nullable String query, @Nullable String nextPageToken) {
-            loaderManager.initLoader(mLoaderId, getArguments(query, nextPageToken), this);
+        public void load(@NonNull LoaderManager loaderManager,
+                         @Nullable String query,
+                         @Nullable String nextPageToken,
+                         boolean requireCover,
+                         @Nullable String parent) {
+            loaderManager.initLoader(mLoaderId, getArguments(query, nextPageToken, requireCover, parent), this);
         }
 
-        public void reload(@NonNull LoaderManager loaderManager, @Nullable String query, @Nullable String nextPageToken) {
-            loaderManager.restartLoader(mLoaderId, getArguments(query, nextPageToken), this);
+        public void reload(@NonNull LoaderManager loaderManager,
+                           @Nullable String query,
+                           @Nullable String nextPageToken,
+                           boolean requireCover,
+                           @Nullable String parent) {
+            loaderManager.restartLoader(mLoaderId, getArguments(query, nextPageToken, requireCover, parent), this);
         }
 
         @Override
@@ -81,7 +98,14 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
             if (id == mLoaderId) {
                 String query = args.getString(ARG_QUERY);
                 String nextPageToken = args.getString(ARG_NEXT_PAGE_TOKEN);
-                return new LibraryLoader(mContext, mCredentialProvider.getCredential(), query, nextPageToken);
+                boolean requireCover = args.getBoolean(ARG_REQUIRE_COVER);
+                String parent = args.getString(ARG_PARENT);
+                return new LibraryLoader(mContext,
+                        mCredentialProvider.getCredential(),
+                        query,
+                        nextPageToken,
+                        requireCover,
+                        parent);
             }
 
             return null;
@@ -110,12 +134,34 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
     private final String mQuery;
     @Nullable
     private final String mNextPageToken;
+    private final boolean mRequireCover;
+    @NonNull
+    private final String mParent;
 
-    public LibraryLoader(@NonNull Context context, @NonNull GoogleAccountCredential googleAccountCredential, @Nullable String query, @Nullable String nextPageToken) {
+    public LibraryLoader(@NonNull Context context,
+                         @NonNull GoogleAccountCredential googleAccountCredential,
+                         @Nullable String query,
+                         @Nullable String nextPageToken,
+                         boolean requireCover,
+                         @Nullable String parent) {
         super(context);
         mGoogleAccountCredential = googleAccountCredential;
         mQuery = query;
         mNextPageToken = nextPageToken;
+        mRequireCover = requireCover;
+
+        if (TextUtils.isEmpty(parent)) {
+            mParent = ROOT;
+        } else {
+            mParent = parent;
+        }
+
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "initialized query=" + mQuery
+                    + ", nextPageToken=" + mNextPageToken
+                    + ", requireCover=" + mRequireCover
+                    + ", parent=" + mParent);
+        }
     }
 
     @Override
@@ -129,42 +175,10 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
         Drive drive = getDrive(mGoogleAccountCredential);
 
         try {
-            FileList folderList = drive.files().list()
-                    .setQ("'root' in parents and mimeType='application/vnd.google-apps.folder'")
-                    .setSpaces("drive")
-                    .setFields("nextPageToken, files(id, name)")
-                    .setPageToken(result.nextPageToken)
-                    .execute();
+            addVideos(result, drive);
 
-            List<File> folders = folderList.getFiles();
-
-            for (File folder : folders) {
-                if ("Videos".equals(folder.getName())) {
-                    StringBuilder query = new StringBuilder("'")
-                            .append(folder.getId())
-                            .append("' in parents and (mimeType='")
-                            .append(Video.MIME_TYPE_MP4)
-                            .append("' or mimeType='")
-                            .append(Video.MIME_TYPE_JPEG)
-                            .append("')");
-
-                    if (!TextUtils.isEmpty(mQuery)) {
-                        query.append(" and name contains '")
-                                .append(mQuery)
-                                .append("'");
-                    }
-
-                    FileList videosList = drive.files().list()
-                            .setQ(query.toString())
-                            .setOrderBy("name")
-                            .setSpaces("drive")
-                            .setFields("nextPageToken, files(id, name, mimeType)")
-                            .setPageToken(mNextPageToken)
-                            .execute();
-
-                    result.videos = assembleVideos(videosList.getFiles(), drive);
-                    result.nextPageToken = videosList.getNextPageToken();
-                }
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "result size: " + (result.libraryItems != null ? result.libraryItems.size() : null));
             }
         } catch (UserRecoverableAuthIOException e) {
             result.authorizationIntent = e.getIntent();
@@ -177,60 +191,111 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
         return result;
     }
 
-    private List<Video> assembleVideos(List<File> fileList, @NonNull Drive drive) {
-        List<Video> videos = new ArrayList<>();
-        ArrayList<File> files = new ArrayList<>(fileList);
+    @NonNull
+    private String buildQ() {
+        StringBuilder q = new StringBuilder();
 
-        // get videos
-        Iterator<File> videosIterator = files.iterator();
+        q.append("'")
+                .append(mParent)
+                .append("' in parents and (mimeType='")
+                .append(Video.MIME_TYPE_MP4)
+                .append("' or mimeType='")
+                .append(Video.MIME_TYPE_JPEG)
+                .append("' or mimeType='")
+                .append(Folder.MIME_TYPE_FOLDER)
+                .append("')");
 
-        while (videosIterator.hasNext()) {
-            File file = videosIterator.next();
+        if (!TextUtils.isEmpty(mQuery)) {
+            q.append(" and name contains '")
+                    .append(mQuery)
+                    .append("'");
+        }
+
+        String result = q.toString();
+
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "drive query= " + result);
+        }
+
+        return result;
+    }
+
+    private void addVideos(@NonNull Result result, @NonNull Drive drive) throws IOException {
+        result.libraryItems = new ArrayList<>();
+
+        // get all videos, cache folders, and add videos based on parameters
+        FileList listResult = drive.files().list()
+                .setQ(buildQ())
+                .setOrderBy("name")
+                .setSpaces("drive")
+                .setFields("nextPageToken, files")
+                .setPageToken(mNextPageToken)
+                .execute();
+
+        if (listResult.getFiles() == null) return;// error
+
+        for (int fileIndex = 0; fileIndex < listResult.getFiles().size(); fileIndex++) {
+            File file = listResult.getFiles().get(fileIndex);
+            LibraryItem item;
 
             if (Video.MIME_TYPE_MP4.equals(file.getMimeType())) {
-                Video video = new Video(file.getId(), file.getName().split("\\.")[0]);
-
                 try {
-                    HttpRequest request = drive.getRequestFactory().buildGetRequest(drive.files()
-                            .get(file.getId())
-                            .set("alt", "media")
-                            .buildHttpRequestUrl());
-                    video.url = request.getUrl().build();
+                    item = new Video(file, getUrl(file, drive));
                 } catch (IOException e) {
                     if (BuildConfig.DEBUG) Log.e(TAG, "error getting url", e);
+                    continue;// can't cache without a url
+                }
+            } else if (Folder.MIME_TYPE_FOLDER.equals(file.getMimeType())) {
+                item = new Folder(file);
+            } else {
+                continue;// this should be an icon, and not added to the results directly, but to the items in the results
+            }
+
+            // try to set the icon, the results are sorted by name, so the icon should be nearby
+            if (TextUtils.isEmpty(item.icon)) {
+                // search before
+                int iconSearchIndex = fileIndex - 1;
+                File iconSearchItem;
+
+                while (iconSearchIndex >= 0
+                        && item.nameEquals((iconSearchItem = listResult.getFiles().get(iconSearchIndex)))) {
+                    if (setIcon(item, iconSearchItem, drive)) break;
+                    iconSearchIndex--;
                 }
 
-                videos.add(video);
-                videosIterator.remove();
-            }
-        }
+                // search after
+                if (TextUtils.isEmpty(item.icon)) {
+                    iconSearchIndex = fileIndex + 1;
 
-        // get thumbnails
-        for (Video video : videos) {
-            Iterator<File> thumbnailsIterator = files.iterator();
-
-            while (thumbnailsIterator.hasNext()) {
-                File file = thumbnailsIterator.next();
-
-                if (Video.MIME_TYPE_JPEG.equals(file.getMimeType())
-                        && video.name.equals(file.getName().split("\\.")[0])) {
-
-                    try {
-                        HttpRequest request = drive.getRequestFactory().buildGetRequest(drive.files()
-                                .get(file.getId())
-                                .set("alt", "media")
-                                .buildHttpRequestUrl());
-                        video.icon = request.getUrl().build();
-                    } catch (IOException e) {
-                        if (BuildConfig.DEBUG) Log.e(TAG, "error getting url", e);
+                    while (iconSearchIndex < listResult.getFiles().size() - 1
+                            && (item.nameEquals((iconSearchItem = listResult.getFiles().get(iconSearchIndex))))) {
+                        if (setIcon(item, iconSearchItem, drive)) break;
+                        iconSearchIndex++;
                     }
-
-                    thumbnailsIterator.remove();
                 }
             }
+
+            if (mRequireCover && TextUtils.isEmpty(item.icon)) continue;
+            result.libraryItems.add(item);
         }
 
-        return videos;
+        result.nextPageToken = listResult.getNextPageToken();
+    }
+
+    private boolean setIcon(@NonNull LibraryItem item, @NonNull File fileMatchingName, @NonNull Drive drive) {
+        if (Video.MIME_TYPE_JPEG.equals(fileMatchingName.getMimeType())) {
+            try {
+                item.icon = getUrl(fileMatchingName, drive);
+            } catch (IOException e) {
+                if (BuildConfig.DEBUG) {
+                    Log.e(TAG, "error setting icon for item: " + item.name, e);
+                }
+            }
+
+            return true;// this was the icon
+        }
+
+        return false;
     }
 
     @NonNull
@@ -243,9 +308,18 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
         return sDrive;
     }
 
+    @NonNull
+    private static String getUrl(@NonNull File file, @NonNull Drive drive) throws IOException {
+        HttpRequest request = drive.getRequestFactory().buildGetRequest(drive.files()
+                .get(file.getId())
+                .set("alt", "media")
+                .buildHttpRequestUrl());
+        return request.getUrl().build();
+    }
+
     public static class Result {
         @Nullable
-        public List<Video> videos;
+        public ArrayList<LibraryItem> libraryItems;
         @Nullable
         public Intent authorizationIntent;
         @Nullable

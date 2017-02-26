@@ -2,16 +2,17 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <!--<item-->
-        <!--android:id="@+id/action_search"-->
-        <!--android:icon="@drawable/ic_search_black_24dp"-->
-        <!--android:title="@string/action_search"-->
-        <!--app:showAsAction="always" />-->
-
     <item
         android:id="@+id/action_search"
         android:icon="@drawable/ic_search_black_24dp"
         android:title="@string/search_title"
         app:actionViewClass="android.support.v7.widget.SearchView"
         app:showAsAction="collapseActionView|ifRoom" />
+
+    <item
+        android:id="@+id/action_require_cover"
+        android:checkable="true"
+        android:icon="@drawable/ic_movie_black_24dp"
+        android:title="@string/menu_require_cover"
+        app:showAsAction="never" />
 </menu>

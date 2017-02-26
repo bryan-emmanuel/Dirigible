@@ -4,12 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.NavigationView;
-import android.support.design.widget.Snackbar;
-import android.support.v4.view.GravityCompat;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
@@ -17,8 +12,6 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.TextView;
 
 import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.MediaInfo;
@@ -46,7 +39,6 @@ public class MainActivity
         extends
         AppCompatActivity
         implements
-        NavigationView.OnNavigationItemSelectedListener,
         AccountChooser.AccountListener,
         MediaInfoLoader.Player {
 
@@ -56,7 +48,6 @@ public class MainActivity
 
     private static final String FRAGMENT_CONTENT = TAG + ":fragment:content";
 
-    private TextView mAccountNameView;
     @Nullable
     private MiniController mMiniController;
 
@@ -72,16 +63,6 @@ public class MainActivity
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.addDrawerListener(toggle);
-        toggle.syncState();
-
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
-
-        mAccountNameView = (TextView) navigationView.getHeaderView(0).findViewById(android.R.id.text2);
 
         mCastManager = VideoCastManager.getInstance();
         mCastConsumer = new VideoCastConsumerImpl() {
@@ -173,17 +154,6 @@ public class MainActivity
     }
 
     @Override
-    public void onBackPressed() {
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-
-        if (drawer.isDrawerOpen(GravityCompat.START)) {
-            drawer.closeDrawer(GravityCompat.START);
-        } else {
-            super.onBackPressed();
-        }
-    }
-
-    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
@@ -192,16 +162,26 @@ public class MainActivity
     }
 
     @Override
-    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        menu.findItem(R.id.action_logout).setVisible(mCredential != null && !TextUtils.isEmpty(mCredential.getSelectedAccountName()));
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.nav_include_subfolders:
-                // TODO pass this argument to the LibraryBrowser; should this be in the toolbar instead?
-                break;
+            case R.id.action_logout:
+                if (mCredential == null) return true;
+                SharedPreferencesUtils.clearAccount(this);
+                setAccount(null);
+                getSupportFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.content_fragment, new AccountChooser(), FRAGMENT_CONTENT)
+                        .commit();
+                return true;
         }
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        drawer.closeDrawer(GravityCompat.START);
-        return true;
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -242,9 +222,9 @@ public class MainActivity
                 .commit();
     }
 
-    private void setAccount(@NonNull String accountName) {
-        mAccountNameView.setText(accountName);
+    private void setAccount(@Nullable String accountName) {
         mCredential.setSelectedAccountName(accountName);
+        invalidateOptionsMenu();
     }
 
     private boolean checkGooglePlayServicesAvailable() {

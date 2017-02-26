@@ -8,8 +8,10 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -39,20 +41,24 @@ public class LibraryBrowser
         implements
         View.OnClickListener,
         SwipeRefreshLayout.OnRefreshListener,
-        VideoItemCallback,
+        OnLibraryItemClickListener,
         RecyclerViewUtils.OnScrollAutoPagingListener.OnAutoPageListener,
         LibraryLoader.Viewer,
         MediaInfoLoader.Player,
         CredentialProvider,
         SearchView.OnQueryTextListener,
-        MenuItemCompat.OnActionExpandListener {
+        MenuItemCompat.OnActionExpandListener, FragmentManager.OnBackStackChangedListener {
 
     private static final String TAG = LibraryBrowser.class.getSimpleName();
+
+    private static final String ARG_PARENT = TAG + ":arg:parent";
+    private static final String ARG_NAME = TAG + ":arg:name";
 
     private static final String STATE_AUTHORIZATION_INTENT = TAG + ":state:authorizationIntent";
     private static final String STATE_NEXT_PAGE_TOKEN = TAG + ":state:nextPageToken";
     private static final String STATE_QUERY = TAG + ":state:query";
     private static final String STATE_PENDING_PLAY_VIDEO = TAG + ":state:pendingPlayVideo";
+    private static final String STATE_REQUIRE_COVER = TAG + ":state:requireCover";
 
     private static final int LOADER_LIBRARY = 0;
     private static final int LOADER_MEDIA_INFO = 1;
@@ -79,6 +85,20 @@ public class LibraryBrowser
 
     @Nullable
     private Intent mAuthorizationIntent;
+    private boolean mRequireCover;
+
+    public static LibraryBrowser newInstance(@Nullable LibraryItem parent) {
+        LibraryBrowser libraryBrowser = new LibraryBrowser();
+
+        if (parent != null) {
+            Bundle args = new Bundle(1);
+            args.putString(ARG_PARENT, parent.id);
+            args.putString(ARG_NAME, parent.name);
+            libraryBrowser.setArguments(args);
+        }
+
+        return libraryBrowser;
+    }
 
     @Override
     public void onAttach(Context context) {
@@ -100,6 +120,7 @@ public class LibraryBrowser
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setHasOptionsMenu(true);
 
         mLibraryLoaderCallbacks = new LibraryLoader.Callbacks(getContext().getApplicationContext(), this, this, LOADER_LIBRARY);
@@ -143,6 +164,8 @@ public class LibraryBrowser
             mAuthorizationIntent = savedInstanceState.getParcelable(STATE_AUTHORIZATION_INTENT);
             mNextPageToken = savedInstanceState.getString(STATE_NEXT_PAGE_TOKEN);
             mQuery = savedInstanceState.getString(STATE_QUERY);
+            mRequireCover = savedInstanceState.getBoolean(STATE_REQUIRE_COVER);
+
             mAdapter.restoreState(savedInstanceState);
 
             if (!mAdapter.isEmpty()) {
@@ -162,12 +185,42 @@ public class LibraryBrowser
     }
 
     @Override
+    public void onStart() {
+        super.onStart();
+        getFragmentManager().addOnBackStackChangedListener(this);
+    }
+
+    @Override
+    public void onBackStackChanged() {
+        if (!(getActivity() instanceof AppCompatActivity)) return;
+
+        AppCompatActivity activity = (AppCompatActivity) getActivity();
+
+        if (getArguments() == null || !getArguments().containsKey(ARG_NAME)) {
+            activity.setTitle(R.string.app_name);
+        } else {
+            activity.setTitle(getArguments().getString(ARG_NAME));
+        }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        getFragmentManager().removeOnBackStackChangedListener(this);
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
 
-        if (mAdapter.isEmpty()) {
+        if (mAdapter.isEmpty() && !mSwipeContainer.isRefreshing()) {
             mSwipeContainer.setRefreshing(true);
-            mLibraryLoaderCallbacks.load(getLoaderManager(), mQuery, mNextPageToken);
+            String parent = getArguments() != null ? getArguments().getString(ARG_PARENT) : null;
+            mLibraryLoaderCallbacks.load(getLoaderManager(),
+                    mQuery,
+                    mNextPageToken,
+                    mRequireCover,
+                    parent);
         }
     }
 
@@ -190,6 +243,7 @@ public class LibraryBrowser
         outState.putString(STATE_NEXT_PAGE_TOKEN, mNextPageToken);
         outState.putString(STATE_QUERY, mQuery);
         outState.putParcelable(STATE_PENDING_PLAY_VIDEO, mPendingPlayVideo);
+        outState.putBoolean(STATE_REQUIRE_COVER, mRequireCover);
 
         mAdapter.saveState(outState);
     }
@@ -228,12 +282,18 @@ public class LibraryBrowser
     @Override
     public void onPrepareOptionsMenu(Menu menu) {
         menu.findItem(R.id.action_search).setEnabled(!mAdapter.isEmpty());
+        menu.findItem(R.id.action_require_cover).setChecked(mRequireCover);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_search:
+                return true;
+
+            case R.id.action_require_cover:
+                mRequireCover = !item.isChecked();
+                onRefresh();
                 return true;
         }
 
@@ -259,9 +319,17 @@ public class LibraryBrowser
     }
 
     @Override
-    public void loadVideo(@NonNull Video video) {
-        mPendingPlayVideo = video;
-        mMediaInfoLoaderCallbacks.restart(getLoaderManager(), mPendingPlayVideo);
+    public void onLibraryItemClick(@NonNull LibraryItem libraryItem) {
+        if (libraryItem instanceof Video) {
+            mPendingPlayVideo = (Video) libraryItem;
+            mMediaInfoLoaderCallbacks.restart(getLoaderManager(), mPendingPlayVideo);
+        } else {
+            String tag = TAG + ":fragment:" + (getArguments() != null ? getArguments().getString(ARG_PARENT) : null);
+            getFragmentManager().beginTransaction()
+                    .addToBackStack(tag)
+                    .replace(R.id.content_fragment, LibraryBrowser.newInstance(libraryItem), tag)
+                    .commit();
+        }
     }
 
     @Override
@@ -273,7 +341,12 @@ public class LibraryBrowser
             mAdapter.notifyItemRangeRemoved(0, originalSize);
         }
 
-        mLibraryLoaderCallbacks.reload(getLoaderManager(), mQuery, mNextPageToken);
+        String parent = getArguments() != null ? getArguments().getString(ARG_PARENT) : null;
+        mLibraryLoaderCallbacks.reload(getLoaderManager(),
+                mQuery,
+                mNextPageToken,
+                mRequireCover,
+                parent);
         mSwipeContainer.setRefreshing(true);
     }
 
@@ -282,7 +355,12 @@ public class LibraryBrowser
         if (mLoading.getVisibility() == View.VISIBLE) return;// already loading, wait
         if (!mAdapter.isEmpty() && TextUtils.isEmpty(mNextPageToken)) return;// no more pages
         mLoading.setVisibility(View.VISIBLE);
-        mLibraryLoaderCallbacks.reload(getLoaderManager(), mQuery, mNextPageToken);
+        String parent = getArguments() != null ? getArguments().getString(ARG_PARENT) : null;
+        mLibraryLoaderCallbacks.reload(getLoaderManager(),
+                mQuery,
+                mNextPageToken,
+                mRequireCover,
+                parent);
     }
 
     @Override
@@ -294,12 +372,18 @@ public class LibraryBrowser
 
         if (mAuthorizationIntent != null) {
             setEmptyState(R.string.authorize_access);
-        } else if (data.videos != null) {
-            int originalSize = mAdapter.getItemCount();
-            mAdapter.addVideos(data.videos);
-            mAdapter.notifyItemRangeInserted(originalSize, data.videos.size());
-            mEmpty.setVisibility(View.GONE);
-            mRecyclerView.setVisibility(View.VISIBLE);
+        } else if (data.libraryItems != null) {
+            if (!data.libraryItems.isEmpty()) {
+                int originalSize = mAdapter.getItemCount();
+                mAdapter.addLibraryItems(data.libraryItems);
+                mAdapter.notifyItemRangeInserted(originalSize, data.libraryItems.size());
+                mEmpty.setVisibility(View.GONE);
+                mRecyclerView.setVisibility(View.VISIBLE);
+            } else if (mAdapter.isEmpty()) {
+                setEmptyState(R.string.empty_no_results);
+            }
+        } else {
+            setEmptyState(R.string.empty_no_results);
         }
 
         if (TextUtils.isEmpty(mQuery)) {

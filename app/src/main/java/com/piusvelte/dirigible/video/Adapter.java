@@ -23,37 +23,37 @@ import java.util.List;
 public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
 
     private static final String TAG = Adapter.class.getSimpleName();
-    private static final String STATE_VIDEOS = TAG + ":state:videos";
+    private static final String STATE_VIDEOS = TAG + ":state:libraryItems";
 
     @NonNull
-    private VideoItemCallback mCallback;
-    private ArrayList<Video> mVideos = new ArrayList<>();
+    private OnLibraryItemClickListener mCallback;
+    private final ArrayList<LibraryItem> mLibraryItems = new ArrayList<>();
 
-    public Adapter(@NonNull VideoItemCallback callback) {
+    public Adapter(@NonNull OnLibraryItemClickListener callback) {
         mCallback = callback;
     }
 
-    public void addVideos(@NonNull List<Video> files) {
-        mVideos.addAll(files);
+    public void addLibraryItems(@NonNull List<LibraryItem> files) {
+        mLibraryItems.addAll(files);
     }
 
     public void clear() {
-        mVideos.clear();
+        mLibraryItems.clear();
     }
 
     public boolean isEmpty() {
-        return mVideos.isEmpty();
+        return mLibraryItems.isEmpty();
     }
 
     public void restoreState(@NonNull Bundle inState) {
         List<Video> videos = inState.getParcelableArrayList(STATE_VIDEOS);
         if (videos == null) return;
-        mVideos.addAll(videos);
+        mLibraryItems.addAll(videos);
         notifyDataSetChanged();
     }
 
     public void saveState(@NonNull Bundle outState) {
-        outState.putParcelableArrayList(STATE_VIDEOS, mVideos);
+        outState.putParcelableArrayList(STATE_VIDEOS, mLibraryItems);
     }
 
     @Override
@@ -64,12 +64,12 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
 
     @Override
     public void onBindViewHolder(Adapter.ViewHolder holder, int position) {
-        holder.bind(mVideos.get(position));
+        holder.bind(mLibraryItems.get(position));
     }
 
     @Override
     public int getItemCount() {
-        return mVideos.size();
+        return mLibraryItems.size();
     }
 
     @Override
@@ -80,15 +80,15 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
     static class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
         @NonNull
-        private VideoItemCallback mCallback;
+        private OnLibraryItemClickListener mCallback;
         @NonNull
         private ImageView mIcon;
         @NonNull
         private TextView mText;
         @Nullable
-        private Video mVideo;
+        private LibraryItem mLibraryItem;
 
-        ViewHolder(@NonNull View itemView, @NonNull VideoItemCallback callback) {
+        ViewHolder(@NonNull View itemView, @NonNull OnLibraryItemClickListener callback) {
             super(itemView);
             mCallback = callback;
             mIcon = (ImageView) itemView.findViewById(android.R.id.icon);
@@ -96,22 +96,28 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
             itemView.findViewById(android.R.id.content).setOnClickListener(this);
         }
 
-        void bind(@NonNull Video video) {
-            mVideo = video;
+        void bind(@NonNull LibraryItem libraryItem) {
+            mLibraryItem = libraryItem;
 
-            if (!TextUtils.isEmpty(mVideo.icon)) {
-                PicassoUtils.getGoogleAuthPicasso(mIcon.getContext(), mCallback.getCredential())
-                        .load(video.icon)
-                        .error(R.drawable.ic_movie_black_24dp)
-                        .fit()
-                        .centerCrop()
-                        .error(R.mipmap.ic_launcher)
-                        .into(mIcon);
+            if (mLibraryItem instanceof Video) {
+                Video video = (Video) mLibraryItem;
+
+                if (!TextUtils.isEmpty(video.icon)) {
+                    PicassoUtils.getGoogleAuthPicasso(mIcon.getContext(), mCallback.getCredential())
+                            .load(video.icon)
+                            .error(R.drawable.ic_movie_black_24dp)
+                            .fit()
+                            .centerCrop()
+                            .error(R.mipmap.ic_launcher)
+                            .into(mIcon);
+                } else {
+                    mIcon.setImageResource(R.drawable.ic_movie_black_24dp);
+                }
             } else {
-                mIcon.setImageResource(R.drawable.ic_movie_black_24dp);
+                mIcon.setImageResource(R.drawable.ic_folder_open_black_24dp);
             }
 
-            mText.setText(video.name);
+            mText.setText(libraryItem.name);
         }
 
         void recycle() {
@@ -121,8 +127,8 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
 
         @Override
         public void onClick(View v) {
-            if (mVideo == null) return;
-            mCallback.loadVideo(mVideo);
+            if (mLibraryItem == null) return;
+            mCallback.onLibraryItemClick(mLibraryItem);
         }
     }
 }
