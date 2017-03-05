@@ -1,8 +1,13 @@
+import logging
 import os
 import re
 from flask import Flask
 
 app = Flask('Dirigible')
+app.logger.disabled = True
+log = logging.getLogger('werkzeug')
+log.disabled = True
+
 VIDEO_EXT = '(\.mp4$)'
 ROOT = os.path.dirname(os.path.abspath(__file__)) + "/../www"
 
