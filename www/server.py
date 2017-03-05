@@ -12,9 +12,9 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def index(path):
-    if (path.endswidth('.jpg')):
+    if (path.endswith('.jpg')):
         return Response(open(path).read(), 'image/jpeg')
-    elif (path.endswidth('.mp4')):
+    elif (path.endswith('.mp4')):
         return Response(open(path).read(), 'video/mp4')
     else:
         media = []
