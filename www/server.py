@@ -1,6 +1,6 @@
 import logging
 import os
-from flask import Flask, Response
+from flask import Flask, send_file
 
 app = Flask('Dirigible')
 app.logger.disabled = True
@@ -13,9 +13,9 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 @app.route('/<path:path>')
 def index(path):
     if (path.endswith('.jpg')):
-        return Response(open(path).read(), 'image/jpeg')
+        return send_file(path, mimetype='image/jpeg')
     elif (path.endswith('.mp4')):
-        return Response(open(path).read(), 'video/mp4')
+        return send_file(path, mimetype='video/mp4')
     else:
         media = []
         full_path = os.path.join(ROOT, path)
