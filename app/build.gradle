@@ -18,6 +18,12 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    packagingOptions {
+        exclude 'META-INF/ASL2.0'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/NOTICE'
+    }
 }
 
 project.ext.versions = [
@@ -37,17 +43,21 @@ dependencies {
     compile "com.android.support:design:${versions.supportLibrary}"
     compile "com.android.support:mediarouter-v7:${versions.supportLibrary}"
 
+    compile "com.google.android.gms:play-services-cast-framework:${versions.playServices}"
+
     compile "com.google.api-client:google-api-client:${versions.googleApiClient}"
     compile "com.google.api-client:google-api-client-android:${versions.googleApiClient}"
     compile "com.google.apis:google-api-services-drive:v3-rev45-${versions.googleApiClient}"
     compile "com.google.http-client:google-http-client-android:${versions.googleApiClient}"
     compile "com.google.http-client:google-http-client-gson:${versions.googleApiClient}"
 
-    compile 'com.google.android.libraries.cast.companionlibrary:ccl:2.8.2'
-
     compile 'com.squareup.okhttp3:okhttp:3.6.0'
     compile 'com.squareup.picasso:picasso:2.5.2'
     compile 'com.jakewharton.picasso:picasso2-okhttp3-downloader:1.0.2'
+
+    compile 'com.fasterxml.jackson.core:jackson-core:2.7.3'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.7.3'
+    compile 'com.fasterxml.jackson.core:jackson-annotations:2.7.3'
 }
 
 def signing = System.properties['user.home'] + '/.signing/signing.gradle';

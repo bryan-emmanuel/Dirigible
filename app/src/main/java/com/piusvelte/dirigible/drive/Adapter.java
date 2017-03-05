@@ -1,4 +1,4 @@
-package com.piusvelte.dirigible.video;
+package com.piusvelte.dirigible.drive;
 
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -23,7 +23,6 @@ import java.util.List;
 public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
 
     private static final String TAG = Adapter.class.getSimpleName();
-    private static final String STATE_VIDEOS = TAG + ":state:libraryItems";
 
     @NonNull
     private OnLibraryItemClickListener mCallback;
@@ -43,17 +42,6 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
 
     public boolean isEmpty() {
         return mLibraryItems.isEmpty();
-    }
-
-    public void restoreState(@NonNull Bundle inState) {
-        List<Video> videos = inState.getParcelableArrayList(STATE_VIDEOS);
-        if (videos == null) return;
-        mLibraryItems.addAll(videos);
-        notifyDataSetChanged();
-    }
-
-    public void saveState(@NonNull Bundle outState) {
-        outState.putParcelableArrayList(STATE_VIDEOS, mLibraryItems);
     }
 
     @Override

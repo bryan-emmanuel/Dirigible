@@ -5,6 +5,7 @@
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
     <string name="action_search">Search</string>
+    <string name="action_logout">Log out</string>
 
     <string name="add_account">Add Account</string>
     <string name="authorize_access">Authorize Access</string>
@@ -12,12 +13,8 @@
 
     <string name="media_route_menu_title">Play on&#8230;</string>
 
-    <string name="menu_expand_folders">Expand folders</string>
-    <string name="menu_require_cover">Require cover</string>
+    <string name="empty_no_results_filter">No results, try changing your filters</string>
+    <string name="empty_no_results">No results</string>
 
-    <string name="search_title">Search</string>
-
-    <string name="action_logout">Log out</string>
-
-    <string name="empty_no_results">No results, try changing your filters</string>
+    <string name="input_server">Enter server name</string>
 </resources>

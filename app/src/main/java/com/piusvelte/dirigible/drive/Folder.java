@@ -1,11 +1,9 @@
-package com.piusvelte.dirigible.video;
+package com.piusvelte.dirigible.drive;
 
 import android.os.Parcel;
 import android.support.annotation.NonNull;
 
 import com.google.api.services.drive.model.File;
-
-import java.util.ArrayList;
 
 /**
  * Created by bemmanuel on 2/25/17.
@@ -14,17 +12,12 @@ public class Folder extends LibraryItem {
 
     public static final String MIME_TYPE_FOLDER = "application/vnd.google-apps.folder";
 
-    @NonNull
-    public final ArrayList<String> children;
-
     public Folder(@NonNull File file) {
         super(file);
-        children = new ArrayList<>();
     }
 
     protected Folder(Parcel in) {
         super(in);
-        children = in.createStringArrayList();
     }
 
     public static final Creator<Folder> CREATOR = new Creator<Folder>() {

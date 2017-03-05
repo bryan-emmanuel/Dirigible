@@ -13,6 +13,7 @@ public class SharedPreferencesUtils {
 
     private static final String PREFERENCES_NAME = "settings";
     private static final String KEY_ACCOUNT = "account";
+    private static final String KEY_SERVER = "server";
 
     private SharedPreferencesUtils() {
         // not instantiable
@@ -39,5 +40,14 @@ public class SharedPreferencesUtils {
 
     public static void clearAccount(@NonNull Context context) {
         edit(context).remove(KEY_ACCOUNT).apply();
+    }
+
+    @Nullable
+    public static String getServer(@NonNull Context context) {
+        return get(context).getString(KEY_SERVER, null);
+    }
+
+    public static void putServer(@NonNull Context context, @Nullable String server) {
+        edit(context).putString(KEY_SERVER, server).apply();
     }
 }

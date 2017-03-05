@@ -1,4 +1,4 @@
-package com.piusvelte.dirigible.video;
+package com.piusvelte.dirigible.drive;
 
 import android.content.Context;
 import android.content.Intent;
@@ -24,8 +24,6 @@ import com.piusvelte.dirigible.util.CredentialProvider;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * @author bemmanuel
@@ -45,8 +43,7 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
 
         private static final String TAG = Callbacks.class.getSimpleName();
         private static final String ARG_NEXT_PAGE_TOKEN = TAG + ":args:nextPageToken";
-        private static final String ARG_QUERY = TAG + ":args:query";
-        private static final String ARG_REQUIRE_COVER = TAG + ":args:requireCover";
+        private static final String ARG_QUERY = TAG + ":args:setQuery";
         private static final String ARG_PARENT = TAG + ":args:parent";
 
         @NonNull
@@ -67,12 +64,10 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
         @NonNull
         private Bundle getArguments(@Nullable String query,
                                     @Nullable String nextPageToken,
-                                    boolean requireCover,
                                     @Nullable String parent) {
-            Bundle arguments = new Bundle(4);
+            Bundle arguments = new Bundle(3);
             arguments.putString(ARG_NEXT_PAGE_TOKEN, nextPageToken);
             arguments.putString(ARG_QUERY, query);
-            arguments.putBoolean(ARG_REQUIRE_COVER, requireCover);
             arguments.putString(ARG_PARENT, parent);
             return arguments;
         }
@@ -80,17 +75,15 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
         public void load(@NonNull LoaderManager loaderManager,
                          @Nullable String query,
                          @Nullable String nextPageToken,
-                         boolean requireCover,
                          @Nullable String parent) {
-            loaderManager.initLoader(mLoaderId, getArguments(query, nextPageToken, requireCover, parent), this);
+            loaderManager.initLoader(mLoaderId, getArguments(query, nextPageToken, parent), this);
         }
 
         public void reload(@NonNull LoaderManager loaderManager,
                            @Nullable String query,
                            @Nullable String nextPageToken,
-                           boolean requireCover,
                            @Nullable String parent) {
-            loaderManager.restartLoader(mLoaderId, getArguments(query, nextPageToken, requireCover, parent), this);
+            loaderManager.restartLoader(mLoaderId, getArguments(query, nextPageToken, parent), this);
         }
 
         @Override
@@ -98,13 +91,11 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
             if (id == mLoaderId) {
                 String query = args.getString(ARG_QUERY);
                 String nextPageToken = args.getString(ARG_NEXT_PAGE_TOKEN);
-                boolean requireCover = args.getBoolean(ARG_REQUIRE_COVER);
                 String parent = args.getString(ARG_PARENT);
                 return new LibraryLoader(mContext,
                         mCredentialProvider.getCredential(),
                         query,
                         nextPageToken,
-                        requireCover,
                         parent);
             }
 
@@ -134,7 +125,6 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
     private final String mQuery;
     @Nullable
     private final String mNextPageToken;
-    private final boolean mRequireCover;
     @NonNull
     private final String mParent;
 
@@ -142,13 +132,11 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
                          @NonNull GoogleAccountCredential googleAccountCredential,
                          @Nullable String query,
                          @Nullable String nextPageToken,
-                         boolean requireCover,
                          @Nullable String parent) {
         super(context);
         mGoogleAccountCredential = googleAccountCredential;
         mQuery = query;
         mNextPageToken = nextPageToken;
-        mRequireCover = requireCover;
 
         if (TextUtils.isEmpty(parent)) {
             mParent = ROOT;
@@ -157,9 +145,8 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
         }
 
         if (BuildConfig.DEBUG) {
-            Log.d(TAG, "initialized query=" + mQuery
+            Log.d(TAG, "initialized setQuery=" + mQuery
                     + ", nextPageToken=" + mNextPageToken
-                    + ", requireCover=" + mRequireCover
                     + ", parent=" + mParent);
         }
     }
@@ -214,7 +201,7 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
         String result = q.toString();
 
         if (BuildConfig.DEBUG) {
-            Log.d(TAG, "drive query= " + result);
+            Log.d(TAG, "drive setQuery= " + result);
         }
 
         return result;
@@ -275,7 +262,6 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
                 }
             }
 
-            if (mRequireCover && TextUtils.isEmpty(item.icon)) continue;
             result.libraryItems.add(item);
         }
 
@@ -317,12 +303,12 @@ public class LibraryLoader extends BaseAsyncTaskLoader<LibraryLoader.Result> {
         return request.getUrl().build();
     }
 
-    public static class Result {
+    static class Result {
         @Nullable
-        public ArrayList<LibraryItem> libraryItems;
+        ArrayList<LibraryItem> libraryItems;
         @Nullable
-        public Intent authorizationIntent;
+        Intent authorizationIntent;
         @Nullable
-        public String nextPageToken;
+        String nextPageToken;
     }
 }

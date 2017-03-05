@@ -1,4 +1,4 @@
-package com.piusvelte.dirigible.video;
+package com.piusvelte.dirigible.drive;
 
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -19,12 +19,12 @@ public abstract class LibraryItem implements Parcelable {
     @Nullable
     public String icon;
 
-    public LibraryItem(@NonNull File file) {
+    LibraryItem(@NonNull File file) {
         this.id = file.getId();
         this.name = getNameWithoutExtension(file);
     }
 
-    protected LibraryItem(Parcel in) {
+    LibraryItem(Parcel in) {
         id = in.readString();
         name = in.readString();
         icon = in.readString();
@@ -42,12 +42,12 @@ public abstract class LibraryItem implements Parcelable {
         dest.writeString(icon);
     }
 
-    public boolean nameEquals(@NonNull File file) {
+    boolean nameEquals(@NonNull File file) {
         return name.equals(getNameWithoutExtension(file));
     }
 
     @NonNull
-    public static String getNameWithoutExtension(@NonNull File file) {
+    private static String getNameWithoutExtension(@NonNull File file) {
         String name = file.getName();
         int dot = name.lastIndexOf(".");
 

@@ -1,4 +1,4 @@
-package com.piusvelte.dirigible.video;
+package com.piusvelte.dirigible.drive;
 
 import android.content.Context;
 import android.net.Uri;
@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.android.gms.auth.GoogleAuthException;
@@ -14,6 +15,7 @@ import com.google.android.gms.cast.MediaMetadata;
 import com.google.android.gms.common.images.WebImage;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.piusvelte.dirigible.BuildConfig;
+import com.piusvelte.dirigible.Player;
 import com.piusvelte.dirigible.util.BaseAsyncTaskLoader;
 import com.piusvelte.dirigible.util.CredentialProvider;
 
@@ -26,10 +28,6 @@ import java.io.IOException;
 public class MediaInfoLoader extends BaseAsyncTaskLoader<MediaInfo> {
 
     private static final String TAG = MediaInfoLoader.class.getSimpleName();
-
-    public interface Player extends CredentialProvider {
-        void onPlayVideo(@NonNull MediaInfo mediaInfo);
-    }
 
     public static class Callbacks implements LoaderManager.LoaderCallbacks<MediaInfo> {
 
@@ -114,17 +112,18 @@ public class MediaInfoLoader extends BaseAsyncTaskLoader<MediaInfo> {
             if (BuildConfig.DEBUG) Log.e(TAG, "Error getting access token", e);
         }
 
-        Uri imageUrl = Uri.parse(mVideo.icon + "&access_token=" + accessToken);
-        WebImage image = new WebImage(imageUrl);
+        if (!TextUtils.isEmpty(mVideo.icon)) {
+            Uri imageUrl = Uri.parse(mVideo.icon + "&access_token=" + accessToken);
+            WebImage image = new WebImage(imageUrl);
 
-        // notification
-        metadata.addImage(image);
-        // lockscreen
-        metadata.addImage(image);
+            // notification
+            metadata.addImage(image);
+            // lockscreen
+            metadata.addImage(image);
+        }
 
         if (BuildConfig.DEBUG) {
-            Log.d(TAG, "video: " + mVideo.url + "&access_token=" + accessToken +
-                    "\nicon:" + imageUrl);
+            Log.d(TAG, "video: " + mVideo.url + "&access_token=" + accessToken);
         }
 
         return new MediaInfo.Builder(mVideo.url + "&access_token=" + accessToken)

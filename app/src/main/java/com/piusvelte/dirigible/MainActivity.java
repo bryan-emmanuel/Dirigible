@@ -1,5 +1,6 @@
 package com.piusvelte.dirigible;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -8,26 +9,27 @@ import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
-import android.util.Log;
-import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import com.google.android.gms.cast.ApplicationMetadata;
 import com.google.android.gms.cast.MediaInfo;
+import com.google.android.gms.cast.framework.CastButtonFactory;
+import com.google.android.gms.cast.framework.CastContext;
+import com.google.android.gms.cast.framework.CastSession;
+import com.google.android.gms.cast.framework.SessionManager;
+import com.google.android.gms.cast.framework.SessionManagerListener;
+import com.google.android.gms.cast.framework.media.RemoteMediaClient;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.libraries.cast.companionlibrary.cast.VideoCastManager;
-import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumer;
-import com.google.android.libraries.cast.companionlibrary.cast.callbacks.VideoCastConsumerImpl;
-import com.google.android.libraries.cast.companionlibrary.widgets.MiniController;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.util.ExponentialBackOff;
 import com.google.api.services.drive.DriveScopes;
-import com.piusvelte.dirigible.account.AccountChooser;
+import com.piusvelte.dirigible.drive.DriveLibraryBrowser;
+import com.piusvelte.dirigible.drive.account.AccountChooser;
+import com.piusvelte.dirigible.home.HomeLibraryBrowser;
+import com.piusvelte.dirigible.home.ServerInput;
+import com.piusvelte.dirigible.home.VideoUtils;
 import com.piusvelte.dirigible.util.SharedPreferencesUtils;
-import com.piusvelte.dirigible.video.LibraryBrowser;
-import com.piusvelte.dirigible.video.MediaInfoLoader;
 
 import java.util.Collections;
 
@@ -40,68 +42,47 @@ public class MainActivity
         AppCompatActivity
         implements
         AccountChooser.AccountListener,
-        MediaInfoLoader.Player {
+        Player,
+        SessionManagerListener<CastSession>,
+        ServerInput.OnServerInputListener {
 
     static final String TAG = MainActivity.class.getSimpleName();
+
+    private static final boolean USE_DRIVE = false;
 
     private static final int REQUEST_PLAY_SERVICES = 0;
 
     private static final String FRAGMENT_CONTENT = TAG + ":fragment:content";
+    private static final String FRAGMENT_DIALOG = TAG + ":fragment:dialog";
 
-    @Nullable
-    private MiniController mMiniController;
-
-    private VideoCastManager mCastManager;
-    private VideoCastConsumer mCastConsumer;
+    private SessionManager mSessionManager;
+    private CastSession mCastSession;
 
     private GoogleAccountCredential mCredential;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        mSessionManager = CastContext.getSharedInstance(this).getSessionManager();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        mCastManager = VideoCastManager.getInstance();
-        mCastConsumer = new VideoCastConsumerImpl() {
-            @Override
-            public void onFailed(int resourceId, int statusCode) {
-                if (BuildConfig.DEBUG) {
-                    String reason = "Not Available";
-
-                    if (resourceId > 0) {
-                        reason = getString(resourceId);
-                    }
-
-                    Log.e(TAG, "Action failed, reason:  " + reason + ", status code: " + statusCode);
-                }
+        if (USE_DRIVE) {
+            if (checkGooglePlayServicesAvailable()) {
+                onHasGooglePlayServices();
             }
+        } else if (getSupportFragmentManager().findFragmentByTag(FRAGMENT_CONTENT) == null) {
+            String server = SharedPreferencesUtils.getServer(this);
 
-            @Override
-            public void onApplicationConnected(ApplicationMetadata appMetadata, String sessionId, boolean wasLaunched) {
-                invalidateOptionsMenu();
+            if (TextUtils.isEmpty(server)) {
+                new ServerInput().show(getSupportFragmentManager(), FRAGMENT_DIALOG);
+            } else {
+                getSupportFragmentManager().beginTransaction()
+                        .add(R.id.content_fragment, HomeLibraryBrowser.newInstance(VideoUtils.getQualifiedPath(server)), FRAGMENT_CONTENT)
+                        .commit();
             }
-
-            @Override
-            public void onDisconnected() {
-                invalidateOptionsMenu();
-            }
-
-            @Override
-            public void onConnectionSuspended(int cause) {
-                if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "onConnectionSuspended() was called with cause: " + cause);
-                }
-            }
-        };
-
-        mMiniController = (MiniController) findViewById(R.id.miniController);
-        mCastManager.addMiniController(mMiniController);
-
-        if (checkGooglePlayServicesAvailable()) {
-            onHasGooglePlayServices();
         }
     }
 
@@ -117,7 +98,7 @@ public class MainActivity
 
             if (getSupportFragmentManager().findFragmentByTag(FRAGMENT_CONTENT) == null) {
                 getSupportFragmentManager().beginTransaction()
-                        .add(R.id.content_fragment, new LibraryBrowser(), FRAGMENT_CONTENT)
+                        .add(R.id.content_fragment, DriveLibraryBrowser.newInstance(null), FRAGMENT_CONTENT)
                         .commit();
             }
         } else if (getSupportFragmentManager().findFragmentByTag(FRAGMENT_CONTENT) == null) {
@@ -128,42 +109,37 @@ public class MainActivity
     }
 
     @Override
-    protected void onPostResume() {
-        super.onPostResume();
-        mCastManager.addVideoCastConsumer(mCastConsumer);
-        mCastManager.incrementUiCounter();
+    protected void onResume() {
+        mCastSession = mSessionManager.getCurrentCastSession();
+        mSessionManager.addSessionManagerListener(this, CastSession.class);
+        super.onResume();
     }
 
     @Override
     protected void onPause() {
-        mCastManager.decrementUiCounter();
-        mCastManager.removeVideoCastConsumer(mCastConsumer);
         super.onPause();
-    }
-
-    @Override
-    protected void onDestroy() {
-        if (mMiniController != null) mCastManager.removeMiniController(mMiniController);
-        super.onDestroy();
-    }
-
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        return mCastManager.onDispatchVolumeKeyEvent(event, mCastManager.getVolumeStep())
-                || super.dispatchKeyEvent(event);
+        mSessionManager.removeSessionManagerListener(this, CastSession.class);
+        mCastSession = null;
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
-        mCastManager.addMediaRouterButton(menu, R.id.media_route_menu_item);
+        CastButtonFactory.setUpMediaRouteButton(getApplicationContext(),
+                menu,
+                R.id.media_route_menu_item);
         return true;
     }
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        menu.findItem(R.id.action_logout).setVisible(mCredential != null && !TextUtils.isEmpty(mCredential.getSelectedAccountName()));
+        if (USE_DRIVE) {
+            menu.findItem(R.id.action_logout).setVisible(mCredential != null && !TextUtils.isEmpty(mCredential.getSelectedAccountName()));
+        } else if (TextUtils.isEmpty(SharedPreferencesUtils.getServer(this))) {
+            menu.findItem(R.id.action_logout).setVisible(false);
+        }
+
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -171,13 +147,25 @@ public class MainActivity
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_logout:
-                if (mCredential == null) return true;
-                SharedPreferencesUtils.clearAccount(this);
-                setAccount(null);
-                getSupportFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
-                getSupportFragmentManager().beginTransaction()
-                        .replace(R.id.content_fragment, new AccountChooser(), FRAGMENT_CONTENT)
-                        .commit();
+                if (USE_DRIVE) {
+                    if (mCredential == null) return true;
+                    SharedPreferencesUtils.clearAccount(this);
+                    setAccount(null);
+                    getSupportFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+                    getSupportFragmentManager().beginTransaction()
+                            .replace(R.id.content_fragment, new AccountChooser(), FRAGMENT_CONTENT)
+                            .commit();
+                } else {
+                    SharedPreferencesUtils.putServer(this, null);
+
+                    if (getSupportFragmentManager().findFragmentByTag(FRAGMENT_CONTENT) != null) {
+                        getSupportFragmentManager().beginTransaction()
+                                .remove(getSupportFragmentManager().findFragmentByTag(FRAGMENT_CONTENT))
+                                .commit();
+                    }
+
+                    new ServerInput().show(getSupportFragmentManager(), FRAGMENT_DIALOG);
+                }
                 return true;
         }
 
@@ -203,7 +191,63 @@ public class MainActivity
 
     @Override
     public void onPlayVideo(@NonNull MediaInfo mediaInfo) {
-        mCastManager.startVideoCastControllerActivity(this, mediaInfo, 0, true);
+        if (mCastSession == null) return;
+        final RemoteMediaClient remoteMediaClient = mCastSession.getRemoteMediaClient();
+        if (remoteMediaClient == null) return;
+
+        remoteMediaClient.addListener(new RemoteMediaClientListener(this, remoteMediaClient));
+        remoteMediaClient.load(mediaInfo, true, 0);
+    }
+
+    @Override
+    public void onServerInput(String server) {
+        SharedPreferencesUtils.putServer(this, server);
+
+        if (!TextUtils.isEmpty(server)) {
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.content_fragment, HomeLibraryBrowser.newInstance(VideoUtils.getQualifiedPath(server)), FRAGMENT_CONTENT)
+                    .commit();
+        } else {
+            new ServerInput().show(getSupportFragmentManager(), FRAGMENT_DIALOG);
+        }
+    }
+
+    private static class RemoteMediaClientListener implements RemoteMediaClient.Listener {
+
+        private final Context mContext;
+        private final RemoteMediaClient mClient;
+
+        RemoteMediaClientListener(Context context, RemoteMediaClient client) {
+            mContext = context;
+            mClient = client;
+        }
+
+        @Override
+        public void onStatusUpdated() {
+            Intent intent = new Intent(mContext, ExpandedControlsActivity.class);
+            mContext.startActivity(intent);
+            mClient.removeListener(this);
+        }
+
+        @Override
+        public void onMetadataUpdated() {
+            // NOOP
+        }
+
+        @Override
+        public void onQueueStatusUpdated() {
+            // NOOP
+        }
+
+        @Override
+        public void onPreloadStatusUpdated() {
+            // NOOP
+        }
+
+        @Override
+        public void onSendingRemoteMediaRequest() {
+            // NOOP
+        }
     }
 
     @NonNull
@@ -218,7 +262,7 @@ public class MainActivity
         setAccount(accountName);
 
         getSupportFragmentManager().beginTransaction()
-                .replace(R.id.content_fragment, new LibraryBrowser(), FRAGMENT_CONTENT)
+                .replace(R.id.content_fragment, DriveLibraryBrowser.newInstance(null), FRAGMENT_CONTENT)
                 .commit();
     }
 
@@ -238,5 +282,53 @@ public class MainActivity
         }
 
         return false;
+    }
+
+    @Override
+    public void onSessionStarting(CastSession session) {
+        // NOOP
+    }
+
+    @Override
+    public void onSessionStarted(CastSession session, String s) {
+        mCastSession = session;
+        invalidateOptionsMenu();
+    }
+
+    @Override
+    public void onSessionStartFailed(CastSession session, int i) {
+        // NOOP
+    }
+
+    @Override
+    public void onSessionEnding(CastSession session) {
+        // NOOP
+    }
+
+    @Override
+    public void onSessionEnded(CastSession session, int i) {
+        if (session == mCastSession) mCastSession = null;
+        invalidateOptionsMenu();
+    }
+
+    @Override
+    public void onSessionResuming(CastSession session, String s) {
+        // NOOP
+    }
+
+    @Override
+    public void onSessionResumed(CastSession session, boolean b) {
+        mCastSession = session;
+        invalidateOptionsMenu();
+    }
+
+    @Override
+    public void onSessionResumeFailed(CastSession session, int i) {
+        // NOOP
+    }
+
+    @Override
+    public void onSessionSuspended(CastSession session, int i) {
+        // NOOP
     }
 }

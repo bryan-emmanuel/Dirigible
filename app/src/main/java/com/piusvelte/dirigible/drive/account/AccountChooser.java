@@ -1,4 +1,4 @@
-package com.piusvelte.dirigible.account;
+package com.piusvelte.dirigible.drive.account;
 
 import android.Manifest;
 import android.accounts.AccountManager;

@@ -1,4 +1,4 @@
-package com.piusvelte.dirigible.video;
+package com.piusvelte.dirigible.home;
 
 import android.app.Activity;
 import android.content.Context;
@@ -26,42 +26,31 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ProgressBar;
 
-import com.google.android.gms.cast.MediaInfo;
-import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
+import com.piusvelte.dirigible.Player;
 import com.piusvelte.dirigible.R;
-import com.piusvelte.dirigible.util.CredentialProvider;
-import com.piusvelte.dirigible.util.RecyclerViewUtils;
 
 /**
  * Created by bemmanuel on 2/23/17.
  */
-public class LibraryBrowser
+public class HomeLibraryBrowser
         extends
         Fragment
         implements
         View.OnClickListener,
         SwipeRefreshLayout.OnRefreshListener,
         OnLibraryItemClickListener,
-        RecyclerViewUtils.OnScrollAutoPagingListener.OnAutoPageListener,
         LibraryLoader.Viewer,
-        MediaInfoLoader.Player,
-        CredentialProvider,
         SearchView.OnQueryTextListener,
-        MenuItemCompat.OnActionExpandListener, FragmentManager.OnBackStackChangedListener {
+        MenuItemCompat.OnActionExpandListener,
+        FragmentManager.OnBackStackChangedListener {
 
-    private static final String TAG = LibraryBrowser.class.getSimpleName();
+    private static final String TAG = HomeLibraryBrowser.class.getSimpleName();
 
-    private static final String ARG_PARENT = TAG + ":arg:parent";
-    private static final String ARG_NAME = TAG + ":arg:name";
+    private static final String ARG_PATH = TAG + ":arg:path";
 
-    private static final String STATE_AUTHORIZATION_INTENT = TAG + ":state:authorizationIntent";
-    private static final String STATE_NEXT_PAGE_TOKEN = TAG + ":state:nextPageToken";
-    private static final String STATE_QUERY = TAG + ":state:query";
-    private static final String STATE_PENDING_PLAY_VIDEO = TAG + ":state:pendingPlayVideo";
-    private static final String STATE_REQUIRE_COVER = TAG + ":state:requireCover";
+    private static final String STATE_QUERY = TAG + ":state:setQuery";
 
     private static final int LOADER_LIBRARY = 0;
-    private static final int LOADER_MEDIA_INFO = 1;
 
     private static final int REQUEST_AUTHORIZATION = 4;
 
@@ -72,30 +61,17 @@ public class LibraryBrowser
 
     private Adapter mAdapter;
     @Nullable
-    private String mNextPageToken;
-    @Nullable
     private String mQuery;
     private LibraryLoader.Callbacks mLibraryLoaderCallbacks;
-    private MediaInfoLoader.Callbacks mMediaInfoLoaderCallbacks;
 
-    @Nullable
-    private Video mPendingPlayVideo;
+    private Player mPlayer;
 
-    private MediaInfoLoader.Player mPlayer;
+    public static HomeLibraryBrowser newInstance(@NonNull String path) {
+        HomeLibraryBrowser libraryBrowser = new HomeLibraryBrowser();
 
-    @Nullable
-    private Intent mAuthorizationIntent;
-    private boolean mRequireCover;
-
-    public static LibraryBrowser newInstance(@Nullable LibraryItem parent) {
-        LibraryBrowser libraryBrowser = new LibraryBrowser();
-
-        if (parent != null) {
-            Bundle args = new Bundle(1);
-            args.putString(ARG_PARENT, parent.id);
-            args.putString(ARG_NAME, parent.name);
-            libraryBrowser.setArguments(args);
-        }
+        Bundle args = new Bundle(1);
+        args.putString(ARG_PATH, path);
+        libraryBrowser.setArguments(args);
 
         return libraryBrowser;
     }
@@ -104,8 +80,8 @@ public class LibraryBrowser
     public void onAttach(Context context) {
         super.onAttach(context);
 
-        if (context instanceof MediaInfoLoader.Player) {
-            mPlayer = (MediaInfoLoader.Player) context;
+        if (context instanceof Player) {
+            mPlayer = (Player) context;
         } else {
             throw new IllegalStateException(TAG + " must be attached to a MediaInfoLoader.Player");
         }
@@ -123,8 +99,7 @@ public class LibraryBrowser
 
         setHasOptionsMenu(true);
 
-        mLibraryLoaderCallbacks = new LibraryLoader.Callbacks(getContext().getApplicationContext(), this, this, LOADER_LIBRARY);
-        mMediaInfoLoaderCallbacks = new MediaInfoLoader.Callbacks(getContext().getApplicationContext(), this, this, LOADER_MEDIA_INFO);
+        mLibraryLoaderCallbacks = new LibraryLoader.Callbacks(getContext().getApplicationContext(), this, LOADER_LIBRARY);
     }
 
     @Nullable
@@ -144,14 +119,13 @@ public class LibraryBrowser
 
         mEmpty.setOnClickListener(this);
 
-        mAdapter = new Adapter(this);
+        mAdapter = new Adapter(this, getArguments().getString(ARG_PATH));
 
         mRecyclerView.setLayoutManager(new GridLayoutManager(getContext(),
                 getResources().getInteger(R.integer.gallery_span_count),
                 LinearLayoutManager.VERTICAL,
                 false));
         mRecyclerView.setAdapter(mAdapter);
-        RecyclerViewUtils.addAutoPaging(mRecyclerView, this);
 
         mSwipeContainer.setOnRefreshListener(this);
     }
@@ -161,26 +135,7 @@ public class LibraryBrowser
         super.onViewStateRestored(savedInstanceState);
 
         if (savedInstanceState != null) {
-            mAuthorizationIntent = savedInstanceState.getParcelable(STATE_AUTHORIZATION_INTENT);
-            mNextPageToken = savedInstanceState.getString(STATE_NEXT_PAGE_TOKEN);
             mQuery = savedInstanceState.getString(STATE_QUERY);
-            mRequireCover = savedInstanceState.getBoolean(STATE_REQUIRE_COVER);
-
-            mAdapter.restoreState(savedInstanceState);
-
-            if (!mAdapter.isEmpty()) {
-                mSwipeContainer.setRefreshing(false);
-                mEmpty.setVisibility(View.GONE);
-                mRecyclerView.setVisibility(View.VISIBLE);
-
-                getActivity().invalidateOptionsMenu();
-            }
-
-            mPendingPlayVideo = savedInstanceState.getParcelable(STATE_PENDING_PLAY_VIDEO);
-
-            if (mPendingPlayVideo != null) {
-                mMediaInfoLoaderCallbacks.init(getLoaderManager(), mPendingPlayVideo);
-            }
         }
     }
 
@@ -195,12 +150,7 @@ public class LibraryBrowser
         if (!(getActivity() instanceof AppCompatActivity)) return;
 
         AppCompatActivity activity = (AppCompatActivity) getActivity();
-
-        if (getArguments() == null || !getArguments().containsKey(ARG_NAME)) {
-            activity.setTitle(R.string.app_name);
-        } else {
-            activity.setTitle(getArguments().getString(ARG_NAME));
-        }
+        activity.setTitle(VideoUtils.getNameFromPath(getArguments().getString(ARG_PATH)));
     }
 
     @Override
@@ -213,14 +163,11 @@ public class LibraryBrowser
     public void onResume() {
         super.onResume();
 
-        if (mAdapter.isEmpty() && !mSwipeContainer.isRefreshing()) {
+        if (!TextUtils.isEmpty(mQuery)) {
+            onQueryChanged();
+        } else if (mAdapter.isEmpty() && !mSwipeContainer.isRefreshing()) {
             mSwipeContainer.setRefreshing(true);
-            String parent = getArguments() != null ? getArguments().getString(ARG_PARENT) : null;
-            mLibraryLoaderCallbacks.load(getLoaderManager(),
-                    mQuery,
-                    mNextPageToken,
-                    mRequireCover,
-                    parent);
+            mLibraryLoaderCallbacks.load(getLoaderManager(), getArguments().getString(ARG_PATH));
         }
     }
 
@@ -238,14 +185,7 @@ public class LibraryBrowser
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-
-        outState.putParcelable(STATE_AUTHORIZATION_INTENT, mAuthorizationIntent);
-        outState.putString(STATE_NEXT_PAGE_TOKEN, mNextPageToken);
         outState.putString(STATE_QUERY, mQuery);
-        outState.putParcelable(STATE_PENDING_PLAY_VIDEO, mPendingPlayVideo);
-        outState.putBoolean(STATE_REQUIRE_COVER, mRequireCover);
-
-        mAdapter.saveState(outState);
     }
 
     @Override
@@ -274,7 +214,7 @@ public class LibraryBrowser
         SearchView searchView = (SearchView) MenuItemCompat.getActionView(searchItem);
         searchView.setIconifiedByDefault(true);
         searchView.setOnQueryTextListener(this);
-        searchView.setQueryHint(getString(R.string.search_title));
+        searchView.setQueryHint(getString(R.string.action_search));
 
         MenuItemCompat.setOnActionExpandListener(searchItem, this);
     }
@@ -282,7 +222,6 @@ public class LibraryBrowser
     @Override
     public void onPrepareOptionsMenu(Menu menu) {
         menu.findItem(R.id.action_search).setEnabled(!mAdapter.isEmpty());
-        menu.findItem(R.id.action_require_cover).setChecked(mRequireCover);
     }
 
     @Override
@@ -290,18 +229,12 @@ public class LibraryBrowser
         switch (item.getItemId()) {
             case R.id.action_search:
                 return true;
-
-            case R.id.action_require_cover:
-                mRequireCover = !item.isChecked();
-                onRefresh();
-                return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
 
     private void setEmptyState(@StringRes int stringRes) {
-        mNextPageToken = null;
         mEmpty.setText(stringRes);
         mEmpty.setVisibility(View.VISIBLE);
         mRecyclerView.setVisibility(View.GONE);
@@ -313,21 +246,15 @@ public class LibraryBrowser
     }
 
     @Override
-    public void onPlayVideo(@NonNull MediaInfo mediaInfo) {
-        mPendingPlayVideo = null;
-        mPlayer.onPlayVideo(mediaInfo);
-    }
-
-    @Override
-    public void onLibraryItemClick(@NonNull LibraryItem libraryItem) {
-        if (libraryItem instanceof Video) {
-            mPendingPlayVideo = (Video) libraryItem;
-            mMediaInfoLoaderCallbacks.restart(getLoaderManager(), mPendingPlayVideo);
+    public void onLibraryItemClick(@NonNull String name) {
+        if (VideoUtils.isVideo(name)) {
+            mPlayer.onPlayVideo(VideoUtils.buildMediaInfo(getArguments().getString(ARG_PATH), name));
         } else {
-            String tag = TAG + ":fragment:" + (getArguments() != null ? getArguments().getString(ARG_PARENT) : null);
+            String path = VideoUtils.getPath(getArguments().getString(ARG_PATH), name);
+            String tag = TAG + ":fragment:" + VideoUtils.getNameFromPath(path);
             getFragmentManager().beginTransaction()
                     .addToBackStack(tag)
-                    .replace(R.id.content_fragment, LibraryBrowser.newInstance(libraryItem), tag)
+                    .replace(R.id.content_fragment, HomeLibraryBrowser.newInstance(path), tag)
                     .commit();
         }
     }
@@ -341,42 +268,22 @@ public class LibraryBrowser
             mAdapter.notifyItemRangeRemoved(0, originalSize);
         }
 
-        String parent = getArguments() != null ? getArguments().getString(ARG_PARENT) : null;
-        mLibraryLoaderCallbacks.reload(getLoaderManager(),
-                mQuery,
-                mNextPageToken,
-                mRequireCover,
-                parent);
+        mLibraryLoaderCallbacks.reload(getLoaderManager(), getArguments().getString(ARG_PATH));
         mSwipeContainer.setRefreshing(true);
-    }
-
-    @Override
-    public void onAutoPage() {
-        if (mLoading.getVisibility() == View.VISIBLE) return;// already loading, wait
-        if (!mAdapter.isEmpty() && TextUtils.isEmpty(mNextPageToken)) return;// no more pages
-        mLoading.setVisibility(View.VISIBLE);
-        String parent = getArguments() != null ? getArguments().getString(ARG_PARENT) : null;
-        mLibraryLoaderCallbacks.reload(getLoaderManager(),
-                mQuery,
-                mNextPageToken,
-                mRequireCover,
-                parent);
     }
 
     @Override
     public void onLibraryLoaded(@NonNull LibraryLoader.Result data) {
         mLoading.setVisibility(View.GONE);
         mSwipeContainer.setRefreshing(false);
-        mAuthorizationIntent = data.authorizationIntent;
-        mNextPageToken = data.nextPageToken;
 
-        if (mAuthorizationIntent != null) {
-            setEmptyState(R.string.authorize_access);
-        } else if (data.libraryItems != null) {
+        if (data.libraryItems != null) {
             if (!data.libraryItems.isEmpty()) {
-                int originalSize = mAdapter.getItemCount();
+                // TODO notify items add if there's no active query and we're just adding items
                 mAdapter.addLibraryItems(data.libraryItems);
-                mAdapter.notifyItemRangeInserted(originalSize, data.libraryItems.size());
+                mAdapter.setQuery(mQuery);
+                mAdapter.notifyDataSetChanged();
+
                 mEmpty.setVisibility(View.GONE);
                 mRecyclerView.setVisibility(View.VISIBLE);
             } else if (mAdapter.isEmpty()) {
@@ -386,31 +293,23 @@ public class LibraryBrowser
             setEmptyState(R.string.empty_no_results);
         }
 
-        if (TextUtils.isEmpty(mQuery)) {
-            getActivity().invalidateOptionsMenu();
-        }
-    }
-
-    @NonNull
-    @Override
-    public GoogleAccountCredential getCredential() {
-        return mPlayer.getCredential();
+        getActivity().invalidateOptionsMenu();
     }
 
     @Override
     public boolean onQueryTextSubmit(String query) {
         mQuery = query;
-        onRefresh();
+        onQueryChanged();
         return true;
     }
 
     @Override
     public boolean onQueryTextChange(String query) {
-        if (query.length() < 2) return true;
-        if (query.substring(query.length() - 2).contains(" ")) return true;
+        if (query.length() < 1) return true;
+        if (query.substring(query.length() - 1).contains(" ")) return true;
 
         mQuery = query;
-        onRefresh();
+        onQueryChanged();
         return true;
     }
 
@@ -422,7 +321,12 @@ public class LibraryBrowser
     @Override
     public boolean onMenuItemActionCollapse(MenuItem item) {
         mQuery = null;
-        onRefresh();
+        onQueryChanged();
         return true;
+    }
+
+    private void onQueryChanged() {
+        mAdapter.setQuery(mQuery);
+        mAdapter.notifyDataSetChanged();
     }
 }
