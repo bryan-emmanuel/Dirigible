@@ -1,6 +1,6 @@
 import logging
 import os
-from flask import Flask
+from flask import Flask, Response
 
 app = Flask('Dirigible')
 app.logger.disabled = True
