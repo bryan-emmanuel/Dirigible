@@ -1,7 +1,6 @@
 package com.piusvelte.dirigible.home;
 
 import android.net.Uri;
-import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
 import com.google.android.gms.cast.MediaInfo;
@@ -15,6 +14,8 @@ import com.piusvelte.dirigible.drive.Video;
 
 public class VideoUtils {
 
+    private static final String TAG = VideoUtils.class.getSimpleName();
+
     private VideoUtils() {
         // not instantiable
     }
@@ -24,18 +25,22 @@ public class VideoUtils {
     }
 
     public static String getName(String name) {
-        if (isVideo(name)) return name.substring(0, name.length() - 3);
+        if (isVideo(name)) return name.substring(0, name.length() - 4);
         return name;
     }
 
     public static String getNameFromPath(String path) {
         int index = path.lastIndexOf("/");
         if (index < 0) return path;
-        return path.substring(index);
+        return path.substring(index + 1);
+    }
+
+    public static String getSpaceEncoded(String path) {
+        return path.replaceAll(" ", "%20");
     }
 
     public static String getPath(String path, String name) {
-        return getQualifiedPath(path) + "/" + name;
+        return getSpaceEncoded(getQualifiedPath(path) + "/" + name);
     }
 
     public static String getQualifiedPath(String path) {
@@ -43,9 +48,8 @@ public class VideoUtils {
         return "http://" + path;
     }
 
-    @NonNull
     public static String getIconPath(String path, String name) {
-        return getQualifiedPath(path) + "/" + getName(name) + ".jpg";
+        return getSpaceEncoded(getQualifiedPath(path) + "/" + getName(name) + ".jpg");
     }
 
     public static MediaInfo buildMediaInfo(String path, String name) {

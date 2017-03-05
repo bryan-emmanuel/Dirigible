@@ -12,17 +12,22 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def index(path):
-    media = []
-    full_path = os.path.join(ROOT, path)
-    files = os.listdir(full_path)
+    if (path.endswidth('.jpg')):
+        return Response(open(path).read(), 'image/jpeg')
+    elif (path.endswidth('.mp4')):
+        return Response(open(path).read(), 'video/mp4')
+    else:
+        media = []
+        full_path = os.path.join(ROOT, path)
+        files = os.listdir(full_path)
 
-    for file in files:
-        file_path = os.path.join(full_path, file)
+        for file in files:
+            file_path = os.path.join(full_path, file)
 
-        if not os.path.isfile(file_path) or file.endswith('.mp4'):
-            # directory or video
-            media.append('"%s"' % file)
-    return '{"data":[%s]}' % ','.join(media)
+            if not os.path.isfile(file_path) or file.endswith('.mp4'):
+                # directory or video
+                media.append('"%s"' % file)
+        return '{"data":[%s]}' % ','.join(media)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=80)

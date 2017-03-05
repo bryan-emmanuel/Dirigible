@@ -4,6 +4,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -112,6 +113,7 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
             } else {
                 error = R.drawable.ic_folder_open_black_24dp;
             }
+            Log.d("BJE", "name: " + mName + ", icon: " + VideoUtils.getIconPath(path, mName));
 
             Picasso.with(mIcon.getContext())
                     .load(VideoUtils.getIconPath(path, mName))

@@ -16,7 +16,9 @@ import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
+import android.support.v7.widget.ViewUtils;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -28,6 +30,7 @@ import android.widget.ProgressBar;
 
 import com.piusvelte.dirigible.Player;
 import com.piusvelte.dirigible.R;
+import com.piusvelte.dirigible.drive.Video;
 
 /**
  * Created by bemmanuel on 2/23/17.
@@ -248,7 +251,8 @@ public class HomeLibraryBrowser
     @Override
     public void onLibraryItemClick(@NonNull String name) {
         if (VideoUtils.isVideo(name)) {
-            mPlayer.onPlayVideo(VideoUtils.buildMediaInfo(getArguments().getString(ARG_PATH), name));
+            Log.d("BJE", "path: " + VideoUtils.getPath(getArguments().getString(ARG_PATH), name) + ", icon: " + VideoUtils.getIconPath(getArguments().getString(ARG_PATH), name));
+//            mPlayer.onPlayVideo(VideoUtils.buildMediaInfo(getArguments().getString(ARG_PATH), name));
         } else {
             String path = VideoUtils.getPath(getArguments().getString(ARG_PATH), name);
             String tag = TAG + ":fragment:" + VideoUtils.getNameFromPath(path);
