@@ -4,8 +4,7 @@ from flask import Flask
 
 app = Flask('Dirigible')
 VIDEO_EXT = '(\.mp4$)'
-#ROOT = os.path.dirname(os.path.abspath(__file__))
-ROOT = "/Users/bemmanuel/Downloads"
+ROOT = os.path.dirname(os.path.abspath(__file__)) + "../www"
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
