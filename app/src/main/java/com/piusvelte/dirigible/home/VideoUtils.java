@@ -2,11 +2,16 @@ package com.piusvelte.dirigible.home;
 
 import android.net.Uri;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaMetadata;
 import com.google.android.gms.common.images.WebImage;
+import com.piusvelte.dirigible.BuildConfig;
 import com.piusvelte.dirigible.drive.Video;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 
 /**
  * Created by bemmanuel on 3/5/17.
@@ -24,32 +29,27 @@ public class VideoUtils {
         return !TextUtils.isEmpty(name) && name.endsWith(".mp4");
     }
 
-    public static String getName(String name) {
-        if (isVideo(name)) return name.substring(0, name.length() - 4);
-        return name;
-    }
-
     public static String getNameFromPath(String path) {
         int index = path.lastIndexOf("/");
-        if (index < 0) return path;
-        return path.substring(index + 1);
-    }
 
-    public static String getSpaceEncoded(String path) {
-        return path.replaceAll(" ", "%20");
+        try {
+            if (index < 0) return URLDecoder.decode(path, "UTF-8");
+            return URLDecoder.decode(path.substring(index + 1), "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            if (BuildConfig.DEBUG) {
+                Log.e(TAG, "error decoding: " + path, e);
+            }
+        }
+
+        return path;
     }
 
     public static String getPath(String path, String name) {
-        return getSpaceEncoded(getQualifiedPath(path) + "/" + name);
-    }
-
-    public static String getQualifiedPath(String path) {
-        if (path.startsWith("http://")) return path;
-        return "http://" + path;
+        return String.format("%s/%s", path, name);
     }
 
     public static String getIconPath(String path, String name) {
-        return getSpaceEncoded(getQualifiedPath(path) + "/" + getName(name) + ".jpg");
+        return String.format("%s/%s.jpg", path, name);
     }
 
     public static MediaInfo buildMediaInfo(String path, String name) {

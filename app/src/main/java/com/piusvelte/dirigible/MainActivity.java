@@ -80,7 +80,7 @@ public class MainActivity
                 new ServerInput().show(getSupportFragmentManager(), FRAGMENT_DIALOG);
             } else {
                 getSupportFragmentManager().beginTransaction()
-                        .add(R.id.content_fragment, HomeLibraryBrowser.newInstance(VideoUtils.getQualifiedPath(server)), FRAGMENT_CONTENT)
+                        .add(R.id.content_fragment, HomeLibraryBrowser.newInstance(server), FRAGMENT_CONTENT)
                         .commit();
             }
         }
@@ -199,13 +199,19 @@ public class MainActivity
         remoteMediaClient.load(mediaInfo, true, 0);
     }
 
+    public static String getQualifiedPath(String path) {
+        if (path.startsWith("http://")) return path;
+        return "http://" + path;
+    }
+
     @Override
     public void onServerInput(String server) {
+        if (!TextUtils.isEmpty(server)) server = getQualifiedPath(server);
         SharedPreferencesUtils.putServer(this, server);
 
         if (!TextUtils.isEmpty(server)) {
             getSupportFragmentManager().beginTransaction()
-                    .add(R.id.content_fragment, HomeLibraryBrowser.newInstance(VideoUtils.getQualifiedPath(server)), FRAGMENT_CONTENT)
+                    .add(R.id.content_fragment, HomeLibraryBrowser.newInstance(server), FRAGMENT_CONTENT)
                     .commit();
         } else {
             new ServerInput().show(getSupportFragmentManager(), FRAGMENT_DIALOG);

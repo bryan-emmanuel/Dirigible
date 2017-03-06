@@ -113,7 +113,6 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
             } else {
                 error = R.drawable.ic_folder_open_black_24dp;
             }
-            Log.d("BJE", "name: " + mName + ", icon: " + VideoUtils.getIconPath(path, mName));
 
             Picasso.with(mIcon.getContext())
                     .load(VideoUtils.getIconPath(path, mName))

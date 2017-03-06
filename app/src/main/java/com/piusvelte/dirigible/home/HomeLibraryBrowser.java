@@ -251,8 +251,7 @@ public class HomeLibraryBrowser
     @Override
     public void onLibraryItemClick(@NonNull String name) {
         if (VideoUtils.isVideo(name)) {
-            Log.d("BJE", "path: " + VideoUtils.getPath(getArguments().getString(ARG_PATH), name) + ", icon: " + VideoUtils.getIconPath(getArguments().getString(ARG_PATH), name));
-//            mPlayer.onPlayVideo(VideoUtils.buildMediaInfo(getArguments().getString(ARG_PATH), name));
+            mPlayer.onPlayVideo(VideoUtils.buildMediaInfo(getArguments().getString(ARG_PATH), name));
         } else {
             String path = VideoUtils.getPath(getArguments().getString(ARG_PATH), name);
             String tag = TAG + ":fragment:" + VideoUtils.getNameFromPath(path);
