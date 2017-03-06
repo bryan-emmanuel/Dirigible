@@ -11,9 +11,12 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.piusvelte.dirigible.BuildConfig;
 import com.piusvelte.dirigible.R;
 import com.squareup.picasso.Picasso;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,6 +24,8 @@ import java.util.List;
  * Created by bemmanuel on 3/9/16.
  */
 public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
+
+    private static final String TAG = Adapter.class.getSimpleName();
 
     @NonNull
     private OnLibraryItemClickListener mCallback;
@@ -121,7 +126,15 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
                     .centerCrop()
                     .into(mIcon);
 
-            mText.setText(mName);
+            try {
+                mText.setText(URLDecoder.decode(mName, "UTF-8"));
+            } catch (UnsupportedEncodingException e) {
+                if (BuildConfig.DEBUG) {
+                    Log.e(TAG, "error decoding: " + mName, e);
+                }
+
+                mText.setText(mName);
+            }
         }
 
         void recycle() {

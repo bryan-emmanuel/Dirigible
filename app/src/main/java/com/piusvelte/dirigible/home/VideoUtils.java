@@ -16,7 +16,6 @@ import java.net.URLDecoder;
 /**
  * Created by bemmanuel on 3/5/17.
  */
-
 public class VideoUtils {
 
     private static final String TAG = VideoUtils.class.getSimpleName();
@@ -49,6 +48,7 @@ public class VideoUtils {
     }
 
     public static String getIconPath(String path, String name) {
+        if (isVideo(name)) name = name.substring(0, name.length() - 4);
         return String.format("%s/%s.jpg", path, name);
     }
 

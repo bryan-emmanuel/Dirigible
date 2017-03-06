@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 
 import javax.servlet.ServletException;
@@ -18,7 +19,7 @@ public class DirigibleServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String path = req.getRequestURI();
-        String realPath = getServletContext().getRealPath(path);
+        String realPath = URLDecoder.decode(getServletContext().getRealPath(path), "UTF-8");
         File file = new File(realPath);
 
         if (!file.exists() || file.isDirectory()) {
