@@ -17,11 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 public class DirigibleServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        super.doGet(req, resp);
-
-        String uri = req.getRequestURI();
-        URL url = new URL(uri);
-        String path = url.getPath();
+        String path = req.getRequestURI();
         String realPath = getServletContext().getRealPath(path);
         File file = new File(realPath);
 
