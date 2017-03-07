@@ -1,5 +1,7 @@
 package com.piusvelte.dirigible.web;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -16,6 +18,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 public class DirigibleServlet extends HttpServlet {
+
+    private static final int BUFFER_SIZE = 256 * 1024;
+
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String path = req.getRequestURI();
@@ -77,14 +82,11 @@ public class DirigibleServlet extends HttpServlet {
         OutputStream out = null;
 
         try {
-            in = new FileInputStream(file);
-            out = response.getOutputStream();
+            in = new BufferedInputStream(new FileInputStream(file), BUFFER_SIZE);
+            out = new BufferedOutputStream(response.getOutputStream(), BUFFER_SIZE);
 
-            // Copy the contents of the file to the output stream
-            byte[] buffer = new byte[512 * 1024];
-
-            for (int length; (length = in.read(buffer)) > 0; ) {
-                out.write(buffer, 0, length);
+            for (int read; (read = in.read()) >= 0; ) {
+                out.write(read);
             }
         } catch (IOException e) {
             e.printStackTrace();
