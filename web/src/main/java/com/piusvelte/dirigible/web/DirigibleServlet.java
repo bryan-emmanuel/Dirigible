@@ -1,7 +1,5 @@
 package com.piusvelte.dirigible.web;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -79,8 +77,8 @@ public class DirigibleServlet extends HttpServlet {
         OutputStream out = null;
 
         try {
-            in = new BufferedInputStream(new FileInputStream(file));
-            out = new BufferedOutputStream(response.getOutputStream());
+            in = new FileInputStream(file);
+            out = response.getOutputStream();
 
             // Copy the contents of the file to the output stream
             byte[] buffer = new byte[512 * 1024];
