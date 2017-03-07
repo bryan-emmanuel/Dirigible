@@ -4,19 +4,15 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.piusvelte.dirigible.BuildConfig;
 import com.piusvelte.dirigible.R;
 import com.squareup.picasso.Picasso;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -126,15 +122,7 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
                     .centerCrop()
                     .into(mIcon);
 
-            try {
-                mText.setText(URLDecoder.decode(mName, "UTF-8"));
-            } catch (UnsupportedEncodingException e) {
-                if (BuildConfig.DEBUG) {
-                    Log.e(TAG, "error decoding: " + mName, e);
-                }
-
-                mText.setText(mName);
-            }
+            mText.setText(VideoUtils.getDecodedName(mName));
         }
 
         void recycle() {

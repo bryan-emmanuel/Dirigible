@@ -28,19 +28,23 @@ public class VideoUtils {
         return !TextUtils.isEmpty(name) && name.endsWith(".mp4");
     }
 
-    public static String getNameFromPath(String path) {
-        int index = path.lastIndexOf("/");
-
+    public static String getDecodedName(String name) {
         try {
-            if (index < 0) return URLDecoder.decode(path, "UTF-8");
-            return URLDecoder.decode(path.substring(index + 1), "UTF-8");
+            return URLDecoder.decode(name, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             if (BuildConfig.DEBUG) {
-                Log.e(TAG, "error decoding: " + path, e);
+                Log.e(TAG, "error decoding: " + name, e);
             }
         }
 
-        return path;
+        return name;
+    }
+
+    public static String getNameFromPath(String path) {
+        int index = path.lastIndexOf("/");
+
+        if (index < 0) return getDecodedName(path);
+        return getDecodedName(path.substring(index + 1));
     }
 
     public static String getPath(String path, String name) {
@@ -54,8 +58,9 @@ public class VideoUtils {
 
     public static MediaInfo buildMediaInfo(String path, String name) {
         MediaMetadata metadata = new MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE);
-        metadata.putString(MediaMetadata.KEY_TITLE, name);
-        metadata.putString(MediaMetadata.KEY_SUBTITLE, name);
+        String title = getDecodedName(name);
+        metadata.putString(MediaMetadata.KEY_TITLE, title);
+        metadata.putString(MediaMetadata.KEY_SUBTITLE, title);
 
         Uri imageUrl = Uri.parse(getIconPath(path, name));
         WebImage image = new WebImage(imageUrl);

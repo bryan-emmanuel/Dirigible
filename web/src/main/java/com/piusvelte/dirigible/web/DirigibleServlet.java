@@ -1,12 +1,14 @@
 package com.piusvelte.dirigible.web;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 
@@ -22,59 +24,69 @@ public class DirigibleServlet extends HttpServlet {
         String realPath = URLDecoder.decode(getServletContext().getRealPath(path), "UTF-8");
         File file = new File(realPath);
 
-        if (!file.exists() || file.isDirectory()) {
-            resp.setContentType("application/json");
+        if (file.exists()) {
+            if (file.isDirectory()) {
+                resp.setContentType("application/json");
 
-            File[] files = file.listFiles();
-            PrintWriter writer = resp.getWriter();
-            writer.write("{\"data\":[");
+                File[] files = file.listFiles();
+                PrintWriter writer = resp.getWriter();
+                writer.write("{\"data\":[");
 
-            if (files != null) {
-                boolean addComma = false;
+                if (files != null) {
+                    boolean addComma = false;
 
-                for (File child : files) {
-                    String name = child.getName();
-                    if (name.startsWith(".")) continue;
+                    for (File child : files) {
+                        String name = child.getName();
 
-                    if (name.endsWith(".mp4") || child.isDirectory()) {
-                        if (addComma) {
-                            writer.write(",");
+                        if (!name.startsWith(".")
+                                && !"WEB-INF".equals(name)
+                                && !"META-INF".equals(name)
+                                && (name.endsWith(".mp4") || child.isDirectory())) {
+                            if (addComma) {
+                                writer.write(",");
+                            }
+
+                            writer.write("\"");
+                            writer.write(URLEncoder.encode(name, "UTF-8"));
+                            writer.write("\"");
+                            addComma = true;
                         }
-
-                        writer.write("\"");
-                        writer.write(URLEncoder.encode(name, "UTF-8"));
-                        writer.write("\"");
-                        addComma = true;
                     }
                 }
-            }
 
-            writer.write("]}");
-        } else if (realPath.endsWith(".jpg")) {
-            resp.setContentType("image/jpeg");
-            writeFile(resp, file);
-        } else if (realPath.endsWith(".mp4")) {
-            resp.setContentType("video/mp4");
-            writeFile(resp, file);
+                writer.write("]}");
+            } else if (realPath.endsWith(".jpg")) {
+                writeFile(resp, file, "image/jpeg");
+            } else if (realPath.endsWith(".mp4")) {
+                writeFile(resp, file, "video/mp4");
+            } else {
+                writeEmptyData(resp);
+            }
         } else {
-            resp.setContentType("application/json");
-            resp.getWriter().write("{\"data\":[]}");
+            writeEmptyData(resp);
         }
     }
 
-    private void writeFile(HttpServletResponse response, File file) {
-        FileInputStream in = null;
+    private void writeEmptyData(HttpServletResponse response) throws IOException {
+        response.setContentType("application/json");
+        response.getWriter().write("{\"data\":[]}");
+    }
+
+    private void writeFile(HttpServletResponse response, File file, String mimeType) {
+        response.setContentType(mimeType);
+
+        InputStream in = null;
         OutputStream out = null;
 
         try {
-            in = new FileInputStream(file);
-            out = response.getOutputStream();
+            in = new BufferedInputStream(new FileInputStream(file));
+            out = new BufferedOutputStream(response.getOutputStream());
 
             // Copy the contents of the file to the output stream
-            byte[] buf = new byte[1024];
-            int count = 0;
-            while ((count = in.read(buf)) >= 0) {
-                out.write(buf, 0, count);
+            byte[] buffer = new byte[512 * 1024];
+
+            for (int length; (length = in.read(buffer)) > 0; ) {
+                out.write(buffer, 0, length);
             }
         } catch (IOException e) {
             e.printStackTrace();
