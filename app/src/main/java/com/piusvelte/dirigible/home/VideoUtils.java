@@ -28,6 +28,15 @@ public class VideoUtils {
         return !TextUtils.isEmpty(name) && name.endsWith(".mp4");
     }
 
+    public static String getNameWithoutExtension(String name) {
+        if (isVideo(name)) return name.substring(0, name.length() - 4);
+        return name;
+    }
+
+    public static String getDecodedNameWithoutExtension(String name) {
+        return getDecodedName(getNameWithoutExtension(name));
+    }
+
     public static String getDecodedName(String name) {
         try {
             return URLDecoder.decode(name, "UTF-8");
@@ -52,8 +61,7 @@ public class VideoUtils {
     }
 
     public static String getIconPath(String path, String name) {
-        if (isVideo(name)) name = name.substring(0, name.length() - 4);
-        return String.format("%s/%s.jpg", path, name);
+        return String.format("%s/%s.jpg", path, getNameWithoutExtension(name));
     }
 
     public static MediaInfo buildMediaInfo(String path, String name) {

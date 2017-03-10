@@ -14,6 +14,7 @@ import com.piusvelte.dirigible.R;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -79,6 +80,8 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
                 }
             }
         }
+
+        Collections.sort(mVisibleItems);
     }
 
     @Override
@@ -122,7 +125,7 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
                     .centerCrop()
                     .into(mIcon);
 
-            mText.setText(VideoUtils.getDecodedName(mName));
+            mText.setText(VideoUtils.getDecodedNameWithoutExtension(mName));
         }
 
         void recycle() {
