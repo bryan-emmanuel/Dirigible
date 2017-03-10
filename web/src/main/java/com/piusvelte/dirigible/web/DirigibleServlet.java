@@ -82,11 +82,13 @@ public class DirigibleServlet extends HttpServlet {
         OutputStream out = null;
 
         try {
-            in = new BufferedInputStream(new FileInputStream(file), BUFFER_SIZE);
-            out = new BufferedOutputStream(response.getOutputStream(), BUFFER_SIZE);
+            in = new FileInputStream(file);
+            out = response.getOutputStream();
 
-            for (int read; (read = in.read()) >= 0; ) {
-                out.write(read);
+            byte[] buffer = new byte[BUFFER_SIZE];
+
+            for (int read; (read = in.read(buffer)) >= 0; ) {
+                out.write(buffer, 0, read);
             }
         } catch (IOException e) {
             e.printStackTrace();
