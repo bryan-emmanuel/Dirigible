@@ -1,7 +1,5 @@
 package com.piusvelte.dirigible.web;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -19,7 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 
 public class DirigibleServlet extends HttpServlet {
 
-    private static final int BUFFER_SIZE = 256 * 1024;
+    private static final int BUFFER_SIZE = 128 * 1024;
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
