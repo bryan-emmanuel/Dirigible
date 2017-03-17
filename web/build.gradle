@@ -3,6 +3,7 @@ apply plugin: 'war'
 
 dependencies {
     providedCompile 'javax.servlet:javax.servlet-api:3.0.1'
+    providedCompile 'org.eclipse.jetty:jetty-io:8.1.16.v20140903'
     compile fileTree(dir: 'libs', include: ['*.jar'])
 }
 
