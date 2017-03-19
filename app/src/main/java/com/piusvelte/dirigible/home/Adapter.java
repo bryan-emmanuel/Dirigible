@@ -112,7 +112,7 @@ public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
             mName = name;
             int error;
 
-            if (VideoUtils.isVideo(name)) {
+            if (VideoUtils.isVideo(name) || VideoUtils.isStream(name)) {
                 error = R.drawable.ic_movie_black_24dp;
             } else {
                 error = R.drawable.ic_folder_open_black_24dp;

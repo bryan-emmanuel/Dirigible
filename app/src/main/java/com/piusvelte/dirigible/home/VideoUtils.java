@@ -24,12 +24,16 @@ public class VideoUtils {
         // not instantiable
     }
 
+    public static boolean isStream(String name) {
+        return !TextUtils.isEmpty(name) && name.endsWith(".mpd");
+    }
+
     public static boolean isVideo(String name) {
         return !TextUtils.isEmpty(name) && name.endsWith(".mp4");
     }
 
     public static String getNameWithoutExtension(String name) {
-        if (isVideo(name)) return name.substring(0, name.length() - 4);
+        if (isVideo(name) || isStream(name)) return name.substring(0, name.length() - 4);
         return name;
     }
 
@@ -57,6 +61,10 @@ public class VideoUtils {
     }
 
     public static String getPath(String path, String name) {
+        if (isStream(name)) {
+            return String.format("%s/%s/stream.mpd", path, name.substring(0, name.length() - 4));
+        }
+
         return String.format("%s/%s", path, name);
     }
 
@@ -66,7 +74,7 @@ public class VideoUtils {
 
     public static MediaInfo buildMediaInfo(String path, String name) {
         MediaMetadata metadata = new MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE);
-        String title = getDecodedName(name);
+        String title = getDecodedNameWithoutExtension(name);
         metadata.putString(MediaMetadata.KEY_TITLE, title);
         metadata.putString(MediaMetadata.KEY_SUBTITLE, title);
 
@@ -77,6 +85,10 @@ public class VideoUtils {
         metadata.addImage(image);
         // lockscreen
         metadata.addImage(image);
+
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "play media: " + getPath(path, name));
+        }
 
         return new MediaInfo.Builder(getPath(path, name))
                 .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)

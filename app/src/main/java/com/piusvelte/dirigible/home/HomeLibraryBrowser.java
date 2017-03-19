@@ -247,7 +247,7 @@ public class HomeLibraryBrowser
 
     @Override
     public void onLibraryItemClick(@NonNull String name) {
-        if (VideoUtils.isVideo(name)) {
+        if (VideoUtils.isVideo(name) || VideoUtils.isStream(name)) {
             mPlayer.onPlayVideo(VideoUtils.buildMediaInfo(getArguments().getString(ARG_PATH), name));
         } else {
             String path = VideoUtils.getPath(getArguments().getString(ARG_PATH), name);
