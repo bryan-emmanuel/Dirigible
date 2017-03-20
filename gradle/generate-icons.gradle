@@ -20,7 +20,10 @@ task generateIcons() {
     densities.each { density, size ->
         task "generateIcon${density}"(type: Exec) {
             File dir = new File("${scriptDir}/app/src/main/res/mipmap-${density}");
-            if (!dir.exists()) dir.mkdir();
+
+            if (!dir.exists()) {
+                dir.mkdir();
+            }
 
             commandLine '/Applications/Inkscape.app/Contents/Resources/bin/inkscape',
                     '--without-gui',
