@@ -21,6 +21,18 @@
      id="defs4">
     <linearGradient
        inkscape:collect="always"
+       id="linearGradient4185">
+      <stop
+         style="stop-color:#000000;stop-opacity:0.2"
+         offset="0"
+         id="stop4187" />
+      <stop
+         style="stop-color:#000000;stop-opacity:0;"
+         offset="1"
+         id="stop4189" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
        id="linearGradient4235">
       <stop
          style="stop-color:#ffffff;stop-opacity:0.2"
@@ -35,29 +47,16 @@
        inkscape:collect="always"
        xlink:href="#linearGradient4235"
        id="linearGradient4241"
-       x1="112"
-       y1="588.36218"
-       x2="464"
-       y2="940.36218"
+       x1="121.33332"
+       y1="591.02881"
+       x2="461.33331"
+       y2="931.02881"
        gradientUnits="userSpaceOnUse"
        gradientTransform="matrix(1.2,0,0,1.2,-57.59999,-152.87241)" />
     <filter
        inkscape:collect="always"
        style="color-interpolation-filters:sRGB"
-       id="filter4346"
-       x="-0.033"
-       width="1.066"
-       y="-0.088"
-       height="1.176">
-      <feGaussianBlur
-         inkscape:collect="always"
-         stdDeviation="5.28"
-         id="feGaussianBlur4348" />
-    </filter>
-    <filter
-       inkscape:collect="always"
-       style="color-interpolation-filters:sRGB"
-       id="filter4223"
+       id="filter4169"
        x="-0.048"
        width="1.096"
        y="-0.048"
@@ -65,21 +64,17 @@
       <feGaussianBlur
          inkscape:collect="always"
          stdDeviation="11.52"
-         id="feGaussianBlur4225" />
+         id="feGaussianBlur4171" />
     </filter>
-    <filter
+    <linearGradient
        inkscape:collect="always"
-       style="color-interpolation-filters:sRGB"
-       id="filter4183"
-       x="-0.048"
-       width="1.096"
-       y="-0.048"
-       height="1.096">
-      <feGaussianBlur
-         inkscape:collect="always"
-         stdDeviation="11.52"
-         id="feGaussianBlur4185" />
-    </filter>
+       xlink:href="#linearGradient4185"
+       id="linearGradient4191"
+       x1="200"
+       y1="192"
+       x2="496"
+       y2="488"
+       gradientUnits="userSpaceOnUse" />
   </defs>
   <sodipodi:namedview
      id="base"
@@ -88,9 +83,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.4142136"
-     inkscape:cx="317.2035"
-     inkscape:cy="305.40217"
+     inkscape:zoom="1"
+     inkscape:cx="377.7096"
+     inkscape:cy="205.40217"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -173,14 +168,8 @@
        r="288"
        cy="772.36218"
        cx="288"
-       id="circle4177"
-       style="opacity:1;fill:#000000;fill-opacity:0.2;stroke:none;stroke-width:20;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;filter:url(#filter4183)" />
-    <circle
-       cy="772.36218"
-       cx="288"
        id="circle4167"
-       style="opacity:1;fill:#000000;fill-opacity:0.2;stroke:none;stroke-width:20;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;filter:url(#filter4223)"
-       r="288" />
+       style="opacity:1;fill:#000000;fill-opacity:0.2;stroke:none;stroke-width:20;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;filter:url(#filter4169)" />
     <circle
        style="opacity:1;fill:#795548;fill-opacity:1;stroke:none;stroke-width:20;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="path4163"
@@ -188,10 +177,10 @@
        cy="764.36218"
        r="288" />
     <path
-       id="path4344"
-       d="m 432,678.36216 -16,32 c -17.26526,-8.01044 -36.2961,-15.88127 -57.21094,-21.81641 L 384,726.36216 l -32,0 -30.45508,-45.68359 c -5.60833,-0.76748 -11.32909,-1.36658 -17.17187,-1.75782 L 336,726.36216 l -32,0 -31.84961,-47.77539 c -5.19932,0.14953 -10.38503,0.37556 -15.54492,0.68555 L 288,726.36216 l -32,0 -29.45898,-44.1875 C 169.70523,689.92691 119.69241,710.99177 96,758.36216 c 64,31.99999 64,31 96,64 32,-1 127.99999,-1 160,0 16.26118,-16.76935 32,-16 64,-32 l 16,32 48,0 c -32,-47.99999 -32,-96 0,-144 l -48,0 z"
-       style="opacity:1;fill:#000000;fill-opacity:0.2;stroke:none;stroke-width:20;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;filter:url(#filter4346)"
-       inkscape:connector-curvature="0" />
+       style="opacity:1;fill:url(#linearGradient4191);fill-opacity:1;stroke:none;stroke-width:20;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 432 192 L 416 224 C 398.73474 215.98956 379.7039 208.11873 358.78906 202.18359 L 384 240 L 368 240 L 321.54492 194.31641 C 315.93659 193.54893 310.21583 192.94983 304.37305 192.55859 L 336 240 L 320 240 L 272.15039 192.22461 C 266.95107 192.37414 261.76536 192.60017 256.60547 192.91016 L 288 240 L 272 240 L 226.54102 195.8125 C 169.70523 203.56475 119.69241 224.62961 96 272 L 192 368 L 192 370 L 192.04297 370 C 192.31367 383.81388 195.37343 393.47531 200.80078 400.23828 L 200 400 L 365.38867 565.38867 A 288 288 0 0 0 576 288 L 480 192 L 432 192 z "
+       transform="translate(0,476.36216)"
+       id="circle4182" />
     <path
        style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:20;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="M 432 192 L 416 224 C 398.73474 215.98956 379.7039 208.11873 358.78906 202.18359 L 384 240 L 352 240 L 321.54492 194.31641 C 315.93659 193.54893 310.21583 192.94983 304.37305 192.55859 L 336 240 L 304 240 L 272.15039 192.22461 C 266.95107 192.37414 261.76536 192.60017 256.60547 192.91016 L 288 240 L 256 240 L 226.54102 195.8125 C 169.70523 203.56475 119.69241 224.62961 96 272 C 160 303.99999 160 303 192 336 L 192 368 L 192 370 L 192.04297 370 C 192.94374 415.96584 224.68786 416 272 416 C 350.81645 416 351.97884 415.90099 351.99609 370 L 352 370 L 352 368 L 352 336 C 368.26118 319.23065 384 320 416 304 L 432 336 L 480 336 C 448 288.00001 448 240 480 192 L 432 192 z M 272.13867 335.25586 C 299.46657 335.25948 326.74824 335.44805 344 335.81836 L 344 368 C 289.13599 367.99998 254.864 367.99998 200 368 L 200 335.80078 C 217.43663 335.43359 244.81077 335.25224 272.13867 335.25586 z "
