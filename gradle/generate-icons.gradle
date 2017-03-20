@@ -1,0 +1,37 @@
+def densities = [
+        "ldpi"   : 36,
+        "mdpi"   : 48,
+        "hdpi"   : 72,
+        "xhdpi"  : 96,
+        "xxhdpi" : 144,
+        "xxxhdpi": 192
+]
+
+task generateIcons() {
+
+    group = 'Icons'
+    description = 'Generate icons'
+
+    File inkscape = new File('/Applications/Inkscape.app/Contents/Resources/bin/inkscape')
+    if (!inkscape.exists()) throw new IllegalStateException('Cannot find inkscape')
+
+    def scriptDir = new File(".").getCanonicalPath()
+
+    densities.each { density, size ->
+        task "generateIcon${density}"(type: Exec) {
+            File dir = new File("${scriptDir}/app/src/main/res/mipmap-${density}");
+            if (!dir.exists()) dir.mkdir();
+
+            commandLine '/Applications/Inkscape.app/Contents/Resources/bin/inkscape',
+                    '--without-gui',
+                    '--export-area-page',
+                    "--export-width=${size}",
+                    "--export-height=${size}",
+                    "--export-png=${scriptDir}/app/src/main/res/mipmap-${density}/ic_launcher.png",
+                    "--file=${scriptDir}/ic_launcher.svg"
+        }
+
+        generateIcons.dependsOn "generateIcon${density}"
+    }
+
+}
