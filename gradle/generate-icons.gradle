@@ -10,7 +10,7 @@ def densities = [
 task generateIcons() {
 
     group = 'Icons'
-    description = 'Generate icons'
+    description = 'Generate Icons'
 
     File inkscape = new File('/Applications/Inkscape.app/Contents/Resources/bin/inkscape')
     if (!inkscape.exists()) throw new IllegalStateException('Cannot find inkscape')
@@ -37,4 +37,23 @@ task generateIcons() {
         generateIcons.dependsOn "generateIcon${density}"
     }
 
+}
+
+task generateHiResIcon(type: Exec) {
+
+    group = 'Icons'
+    description = 'Generate Hi-Res Icon'
+
+    File inkscape = new File('/Applications/Inkscape.app/Contents/Resources/bin/inkscape')
+    if (!inkscape.exists()) throw new IllegalStateException('Cannot find inkscape')
+
+    def scriptDir = new File(".").getCanonicalPath()
+
+    commandLine '/Applications/Inkscape.app/Contents/Resources/bin/inkscape',
+            '--without-gui',
+            '--export-area-page',
+            '--export-width=512',
+            '--export-height=512',
+            "--export-png=${scriptDir}/publishing/ic_launcher-hi-res.png",
+            "--file=${scriptDir}/ic_launcher.svg"
 }
