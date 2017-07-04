@@ -28,7 +28,6 @@ import com.piusvelte.dirigible.drive.DriveLibraryBrowser;
 import com.piusvelte.dirigible.drive.account.AccountChooser;
 import com.piusvelte.dirigible.home.HomeLibraryBrowser;
 import com.piusvelte.dirigible.home.ServerInput;
-import com.piusvelte.dirigible.home.VideoUtils;
 import com.piusvelte.dirigible.util.SharedPreferencesUtils;
 
 import java.util.Collections;
@@ -252,6 +251,11 @@ public class MainActivity
 
         @Override
         public void onSendingRemoteMediaRequest() {
+            // NOOP
+        }
+
+        @Override
+        public void onAdBreakStatusUpdated() {
             // NOOP
         }
     }
